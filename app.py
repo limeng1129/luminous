@@ -78,12 +78,34 @@ def row_to_photo(r):
     }
 
 
+# 启动时如果存储有问题，把原因记下来，供自检页显示
+BOOT_ERROR = None
+
+
 def bootstrap():
-    """建表 + 首次运行时生成示例照片。"""
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    init_db()
-    from seed import seed_if_empty
-    seed_if_empty(DB_PATH, UPLOAD_DIR)
+    """建表 + 首次运行时生成示例照片。
+
+    关键：即使存储配置有问题，也绝不能让网站起不来——
+    否则你连 /health/storage 这个用来查问题的页面都打不开。
+    """
+    global BOOT_ERROR
+    try:
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+    except Exception:
+        pass
+    try:
+        init_db()
+    except Exception as e:
+        BOOT_ERROR = f"数据库初始化失败：{type(e).__name__}: {e}"
+        print(f"  [启动警告] {BOOT_ERROR}")
+        return
+    try:
+        from seed import seed_if_empty
+        seed_if_empty(DB_PATH, UPLOAD_DIR)
+    except Exception as e:
+        BOOT_ERROR = f"示例照片写入存储失败：{type(e).__name__}: {e}"
+        print(f"  [启动警告] {BOOT_ERROR}")
+        print("  网站仍会正常启动。请访问 /health/storage 查看具体原因。")
 
 
 # ---------------------------------------------------------------- pages
@@ -216,6 +238,9 @@ def health_storage():
 
     from checks import run_checks
     results = run_checks(DB_PATH, UPLOAD_DIR)
+    if BOOT_ERROR:
+        results.insert(0, ("启动时的错误", "fail", BOOT_ERROR,
+                           "下面各项会指出具体是哪里的问题。"))
 
     if request.args.get("format") == "json":
         return jsonify({"checks": [

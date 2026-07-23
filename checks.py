@@ -73,7 +73,7 @@ def run_checks(db_path, upload_dir):
         out.append(("连接对象存储", OK, f"连接成功，桶里现有 {n} 个文件", ""))
     except Exception as e:
         out.append(("连接对象存储", FAIL, f"连不上：{type(e).__name__} {str(e)[:160]}",
-                    "多半是 S3_KEY / S3_SECRET / S3_ENDPOINT 填错，或桶名不对、密钥没给读写权限。"))
+                    _write_fix(str(e))))
         out.append(_check_db(db_path))
         return out
 
@@ -86,7 +86,7 @@ def run_checks(db_path, upload_dir):
         out.append(("写入测试", OK, f"已写入 {probe_key}", ""))
     except Exception as e:
         out.append(("写入测试", FAIL, f"写不进去：{type(e).__name__} {str(e)[:160]}",
-                    "密钥可能只有读权限。在 Cloudflare 重新建一个 Object Read & Write 的 API Token。"))
+                    _write_fix(str(e))))
         out.append(_check_db(db_path))
         return out
 
@@ -117,6 +117,30 @@ def run_checks(db_path, upload_dir):
 
     out.append(_check_db(db_path))
     return out
+
+
+def _write_fix(msg: str) -> str:
+    """按服务端返回的错误码，给出针对性的修复建议。"""
+    m = msg.lower()
+    if "401" in m or "unauthorized" in m:
+        return ("401 = 密钥不被认可。按顺序排查："
+                "① 回 Render 的 Environment，把 S3_KEY / S3_SECRET 重新复制粘贴一遍，"
+                "确认没有多余的空格、换行，也没有少复制字符；"
+                "② 确认 S3_ENDPOINT 是账号级地址 https://账号ID.r2.cloudflarestorage.com，"
+                "后面不要跟桶名、不要带斜杠；"
+                "③ 最省事的办法：回 Cloudflare R2 → Manage R2 API Tokens，把旧 Token 删了，"
+                "重新建一个权限为 Object Read & Write 的，把新的 Access Key ID 和 "
+                "Secret Access Key 填回 Render。注意 Secret 只在创建时显示一次。")
+    if "403" in m or "accessdenied" in m:
+        return ("403 = 密钥认出来了，但没有权限。多半是 Token 建成了只读。"
+                "去 Cloudflare R2 → Manage R2 API Tokens 重建一个 Object Read & Write 的，"
+                "并确认它的适用范围包含你这个桶。")
+    if "nosuchbucket" in m or "404" in m:
+        return "桶不存在或名字拼错了。核对 Cloudflare R2 里桶的名字，和 S3_BUCKET 必须完全一致。"
+    if "endpoint" in m or "connect" in m or "resolve" in m:
+        return ("连不上服务地址。检查 S3_ENDPOINT 是否写对："
+                "https://账号ID.r2.cloudflarestorage.com（账号 ID 在 R2 首页能看到）。")
+    return "检查 S3_KEY / S3_SECRET / S3_ENDPOINT / S3_BUCKET 四项是否都填对了。"
 
 
 def _public_fix():

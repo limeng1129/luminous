@@ -55,16 +55,21 @@ class S3Storage:
         import boto3
         from botocore.client import Config
 
-        self.bucket = os.environ["S3_BUCKET"]
-        self.public_base = os.environ.get("S3_PUBLIC_BASE", "").rstrip("/")
-        endpoint = os.environ.get("S3_ENDPOINT") or None
+        # .strip() 很重要：从网页复制密钥时经常会带上看不见的空格或换行，
+        # 那会让签名对不上，服务端直接回 401。
+        def env(k, default=""):
+            return (os.environ.get(k) or default).strip()
+
+        self.bucket = env("S3_BUCKET")
+        self.public_base = env("S3_PUBLIC_BASE").rstrip("/")
+        endpoint = env("S3_ENDPOINT").rstrip("/") or None
 
         self.client = boto3.client(
             "s3",
             endpoint_url=endpoint,
-            aws_access_key_id=os.environ["S3_KEY"],
-            aws_secret_access_key=os.environ["S3_SECRET"],
-            region_name=os.environ.get("S3_REGION", "auto"),
+            aws_access_key_id=env("S3_KEY"),
+            aws_secret_access_key=env("S3_SECRET"),
+            region_name=env("S3_REGION", "auto"),
             config=Config(signature_version="s3v4"),
         )
 

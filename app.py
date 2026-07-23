@@ -4,7 +4,7 @@ Flask + SQLite。运行:python app.py，然后打开 http://127.0.0.1:5000
 """
 import io
 import os
-import sqlite3
+import time
 import uuid
 import datetime
 from flask import (
@@ -13,10 +13,11 @@ from flask import (
 )
 from storage import get_storage
 from onedrive import to_direct_link, is_onedrive_link
+from db import get_db, init_db, SQLITE_PATH, describe as db_describe, is_postgres
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 # 数据库与上传目录可通过环境变量指向持久化磁盘（部署到云平台时用）
-DB_PATH = os.environ.get("LUMINOUS_DB", os.path.join(BASE, "luminous.db"))
+DB_PATH = SQLITE_PATH   # 仅 SQLite 模式用；设了 DATABASE_URL 就走 Postgres
 UPLOAD_DIR = os.environ.get("LUMINOUS_UPLOAD_DIR", os.path.join(BASE, "static", "uploads"))
 ALLOWED_EXT = {"png", "jpg", "jpeg", "webp", "gif"}
 MAX_BYTES = 12 * 1024 * 1024  # 单张图片上限 12MB
@@ -34,30 +35,6 @@ app.config["MAX_CONTENT_LENGTH"] = MAX_BYTES
 
 
 # ---------------------------------------------------------------- db helpers
-def get_db():
-    conn = sqlite3.connect(DB_PATH, timeout=15)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-def init_db():
-    with get_db() as c:
-        c.execute(
-            """CREATE TABLE IF NOT EXISTS photos(
-                id         INTEGER PRIMARY KEY AUTOINCREMENT,
-                category   TEXT    NOT NULL,
-                filename   TEXT,
-                url        TEXT,
-                title      TEXT    NOT NULL,
-                subtitle   TEXT,
-                width      INTEGER DEFAULT 800,
-                height     INTEGER DEFAULT 1000,
-                likes      INTEGER DEFAULT 0,
-                created_at TEXT
-            )"""
-        )
-
-
 def row_to_photo(r):
     if r["url"]:
         src = r["url"]
@@ -80,6 +57,7 @@ def row_to_photo(r):
 
 # 启动时如果存储有问题，把原因记下来，供自检页显示
 BOOT_ERROR = None
+PROCESS_START = time.time()
 
 
 def bootstrap():
@@ -101,7 +79,7 @@ def bootstrap():
         return
     try:
         from seed import seed_if_empty
-        seed_if_empty(DB_PATH, UPLOAD_DIR)
+        seed_if_empty(UPLOAD_DIR)
     except Exception as e:
         BOOT_ERROR = f"示例照片写入存储失败：{type(e).__name__}: {e}"
         print(f"  [启动警告] {BOOT_ERROR}")
@@ -185,13 +163,13 @@ def create_photo():
 
     now = datetime.datetime.now().isoformat(timespec="seconds")
     with get_db() as c:
-        cur = c.execute(
+        new_id = c.insert_returning_id(
             """INSERT INTO photos
                (category, filename, url, title, subtitle, width, height, likes, created_at)
                VALUES (?,?,?,?,?,?,?,0,?)""",
             (category, filename, url, title, subtitle, width, height, now),
         )
-        r = c.execute("SELECT * FROM photos WHERE id=?", (cur.lastrowid,)).fetchone()
+        r = c.execute("SELECT * FROM photos WHERE id=?", (new_id,)).fetchone()
     return jsonify(row_to_photo(r)), 201
 
 
@@ -238,6 +216,12 @@ def health_storage():
 
     from checks import run_checks
     results = run_checks(DB_PATH, UPLOAD_DIR)
+    mins = int((time.time() - PROCESS_START) // 60)
+    started = time.strftime("%H:%M", time.localtime(PROCESS_START))
+    results.insert(0, ("本次运行", "ok",
+                       f"当前进程在 {started}（UTC）启动，已运行 {mins} 分钟",
+                       "改完环境变量后必须等重新部署完成才生效。"
+                       "如果这个时间早于你改变量的时间，说明新配置还没加载。"))
     if BOOT_ERROR:
         results.insert(0, ("启动时的错误", "fail", BOOT_ERROR,
                            "下面各项会指出具体是哪里的问题。"))

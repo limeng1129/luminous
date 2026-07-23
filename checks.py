@@ -26,6 +26,24 @@ def run_checks(db_path, upload_dir):
     out = []
     backend = os.environ.get("STORAGE_BACKEND", "local").lower()
 
+    # 列出程序实际看到的变量名（只列名字，不列值）。
+    # 变量名打错、或改完没保存/没重新部署，在这里一眼就能看出来。
+    prefixes = ("S3_", "STORAGE_", "LUMINOUS_", "HEALTH_")
+    seen = sorted(k for k in os.environ if k.startswith(prefixes))
+    expected = ["STORAGE_BACKEND", "S3_BUCKET", "S3_KEY", "S3_SECRET",
+                "S3_ENDPOINT", "S3_PUBLIC_BASE"]
+    missing = [k for k in expected if k not in os.environ]
+    detail = "程序读到的变量：" + ("、".join(seen) if seen else "（一个都没有）")
+    if missing:
+        out.append(("程序实际读到的变量", WARN, detail + "｜缺少：" + "、".join(missing),
+                    "如果你确定在 Render 里填过了，按这三点查："
+                    "① 改完有没有点 Save Changes；"
+                    "② 保存后 Render 要重新部署才生效，看 Events 里这次部署完成了没"
+                    "（下面「本次运行」那行能看出进程是什么时候起来的）；"
+                    "③ 变量名有没有打错或多了空格 —— 上面列出的就是程序真正读到的名字。"))
+    else:
+        out.append(("程序实际读到的变量", OK, detail, ""))
+
     # ── 1. 当前使用的存储方式 ─────────────────────────────────────────
     if backend == "s3":
         out.append(("存储方式", OK, "对象存储（S3 兼容 / Cloudflare R2）", ""))
@@ -181,19 +199,23 @@ def _public_fix():
 
 
 def _check_db(db_path):
-    import sqlite3
+    from db import get_db, is_postgres, describe
     try:
-        conn = sqlite3.connect(db_path, timeout=10)
-        n = conn.execute("SELECT COUNT(*) FROM photos").fetchone()[0]
-        conn.close()
+        with get_db() as c:
+            n = c.execute("SELECT COUNT(*) AS n FROM photos").fetchone()["n"]
     except Exception as e:
-        return ("数据库", FAIL, f"读不到：{str(e)[:120]}", "")
+        return ("数据库", FAIL, f"连不上：{type(e).__name__} {str(e)[:150]}",
+                "如果用的是 Neon / Supabase，检查 DATABASE_URL 是否完整（含用户名、密码、主机、库名），"
+                "以及是否用了它提供的 Pooled connection 字符串。")
+
+    if is_postgres():
+        return ("数据库", OK, f"{n} 条照片记录｜{describe()}｜数据永久保存，重新部署不会丢", "")
 
     on_render = bool(os.environ.get("RENDER"))
-    persistent = db_path.startswith("/var/data") or not on_render
-    if persistent:
-        return ("数据库", OK, f"{n} 条照片记录｜{db_path}", "")
+    if not on_render or db_path.startswith("/var/data"):
+        return ("数据库", OK, f"{n} 条照片记录｜{describe()}", "")
     return ("数据库", WARN,
-            f"{n} 条照片记录，但存在临时磁盘上（{db_path}）",
+            f"{n} 条照片记录，但 SQLite 存在临时磁盘上（{db_path}）",
             "重新部署后照片记录会重置回示例（图片文件本身安全地留在 R2 里）。"
-            "要彻底解决：换成外部 Postgres，或挂一块持久磁盘并设 LUMINOUS_DB=/var/data/luminous.db。")
+            "要彻底解决：注册一个免费 Postgres（Neon 或 Supabase），"
+            "把连接字符串填进 Render 的环境变量 DATABASE_URL 即可，代码不用改。")

@@ -4,11 +4,11 @@
 """
 import io
 import os
-import sqlite3
 import random
 import datetime
 from PIL import Image, ImageDraw, ImageFilter, ImageChops
 from storage import get_storage
+from db import get_db
 
 # (分类, 宽, 高, 标题, 地点·时间, 初始喜欢数)
 SEED_PHOTOS = [
@@ -98,14 +98,12 @@ def make_image(w, h, dark_hex, light_hex, seed):
     return buf
 
 
-def seed_if_empty(db_path, upload_dir):
-    # 用写锁事务，保证多进程服务器首次启动时只播种一次
-    conn = sqlite3.connect(db_path, timeout=30)
-    try:
-        conn.execute("BEGIN IMMEDIATE")
-        n = conn.execute("SELECT COUNT(*) FROM photos").fetchone()[0]
+def seed_if_empty(upload_dir):
+    """库里没有照片时生成一批示例。加锁保证多进程只播一次。"""
+    with get_db() as conn:
+        conn.lock_for_seeding()
+        n = conn.execute("SELECT COUNT(*) AS n FROM photos").fetchone()["n"]
         if n > 0:
-            conn.execute("COMMIT")
             return
 
         os.makedirs(upload_dir, exist_ok=True)
@@ -121,7 +119,4 @@ def seed_if_empty(db_path, upload_dir):
                    VALUES (?,?,?,?,?,?,?,?,?)""",
                 (cat, fn, None, title, sub, w, h, likes, now),
             )
-        conn.execute("COMMIT")
         print(f"  已生成 {len(SEED_PHOTOS)} 张示例照片。")
-    finally:
-        conn.close()

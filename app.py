@@ -207,6 +207,30 @@ def stats():
     return jsonify({"count": row["n"], "likes": row["l"], "chapters": len(CATEGORIES)})
 
 
+@app.get("/health/storage")
+def health_storage():
+    """存储自检。浏览器直接访问即可；加 ?format=json 返回 JSON。"""
+    token = os.environ.get("HEALTH_TOKEN")
+    if token and request.args.get("token") != token:
+        return jsonify({"error": "需要正确的 token"}), 403
+
+    from checks import run_checks
+    results = run_checks(DB_PATH, UPLOAD_DIR)
+
+    if request.args.get("format") == "json":
+        return jsonify({"checks": [
+            {"name": n, "status": s, "detail": d, "fix": f} for n, s, d, f in results
+        ]})
+
+    worst = "ok"
+    for _, s, _, _ in results:
+        if s == "fail":
+            worst = "fail"; break
+        if s == "warn":
+            worst = "warn"
+    return render_template("health.html", results=results, worst=worst)
+
+
 @app.errorhandler(413)
 def too_large(_e):
     return jsonify({"error": "图片太大了，请控制在 12MB 以内"}), 413

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>存储自检 · 流光</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+  .hs{max-width:760px;margin:0 auto;padding:clamp(120px,15vh,160px) clamp(20px,5vw,40px) 80px}
+  .hs h1{font-family:var(--serif);font-weight:500;font-size:clamp(32px,5vw,52px);line-height:1.1;margin-bottom:14px}
+  .verdict{display:inline-flex;align-items:center;gap:10px;padding:10px 20px;border-radius:100px;
+    font-size:14px;font-weight:600;margin-bottom:38px;border:1px solid var(--line-2)}
+  .verdict.ok{color:var(--nature);border-color:rgba(143,190,106,.4);background:rgba(143,190,106,.08)}
+  .verdict.warn{color:var(--life);border-color:rgba(242,185,92,.4);background:rgba(242,185,92,.08)}
+  .verdict.fail{color:#ff8f8f;border-color:rgba(255,143,143,.4);background:rgba(255,143,143,.08)}
+  .row{display:flex;gap:16px;padding:20px 0;border-bottom:1px solid var(--line)}
+  .row:last-of-type{border-bottom:none}
+  .dot{flex-shrink:0;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
+    font-size:12px;font-weight:800;margin-top:2px}
+  .dot.ok{background:rgba(143,190,106,.16);color:var(--nature)}
+  .dot.warn{background:rgba(242,185,92,.16);color:var(--life)}
+  .dot.fail{background:rgba(255,143,143,.16);color:#ff8f8f}
+  .row-body{flex:1;min-width:0}
+  .row-name{font-family:var(--serif);font-size:18px;font-weight:500;margin-bottom:5px}
+  .row-detail{font-size:14.5px;color:var(--ink-soft);line-height:1.65;word-break:break-word;font-weight:300}
+  .row-fix{margin-top:11px;padding:13px 15px;border-radius:10px;background:var(--bg-3);
+    border-left:2px solid var(--life);font-size:13.5px;color:var(--ink-soft);line-height:1.7;font-weight:300}
+  .hs-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:40px}
+  .hs-actions a{padding:12px 22px;border-radius:100px;font-size:14px;font-weight:600;
+    border:1px solid var(--line-2);transition:.3s var(--ease)}
+  .hs-actions a:hover{border-color:var(--ink);background:rgba(244,239,233,.05)}
+  .note{margin-top:30px;font-size:13px;color:var(--ink-dim);line-height:1.8}
+</style>
+</head>
+<body>
+<div class="aura"><b></b><b></b><b></b></div>
+<div class="grain"></div>
+
+<header>
+  <a class="brand" href="/"><span class="mark">流光</span><span class="en">Luminous</span></a>
+  <nav class="nav-actions"><a class="ghost-btn" href="/">回到画廊</a></nav>
+</header>
+
+<main class="hs">
+  <h1>存储自检</h1>
+  {% if worst == 'ok' %}
+    <div class="verdict ok">全部通过 · 照片会安全地存在对象存储里</div>
+  {% elif worst == 'warn' %}
+    <div class="verdict warn">基本可用 · 有几处建议调整</div>
+  {% else %}
+    <div class="verdict fail">有项目没通过 · 照片可能存不住或显示不出来</div>
+  {% endif %}
+
+  {% for name, status, detail, fix in results %}
+  <div class="row">
+    <span class="dot {{ status }}">{% if status=='ok' %}✓{% elif status=='warn' %}!{% else %}✕{% endif %}</span>
+    <div class="row-body">
+      <div class="row-name">{{ name }}</div>
+      <div class="row-detail">{{ detail }}</div>
+      {% if fix %}<div class="row-fix">{{ fix }}</div>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <div class="hs-actions">
+    <a href="/health/storage">重新检测</a>
+    <a href="/health/storage?format=json">看 JSON</a>
+    <a href="/">回到画廊</a>
+  </div>
+
+  <p class="note">这个页面每次都会真的往你的对象存储里写一个测试文件、从公开地址读回来核对、再删掉，
+  所以结果反映的是真实状态，不是读配置猜的。</p>
+</main>
+</body>
+</html>

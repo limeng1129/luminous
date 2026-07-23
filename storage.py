@@ -16,6 +16,27 @@ s3 模式需要的环境变量：
 """
 import os
 import mimetypes
+from urllib.parse import urlparse
+
+
+def normalize_endpoint(ep: str):
+    """把端点规整成账号级地址。
+
+    Cloudflare 在桶页面显示的 S3 API 地址末尾带着桶名，
+    形如 https://账号ID.r2.cloudflarestorage.com/桶名 —— 直接拿来用会让路径重复，
+    请求就会 404。这里自动把多余的路径去掉。
+    返回 (规整后的端点, 提示信息或 None)
+    """
+    ep = (ep or "").strip().rstrip("/")
+    if not ep:
+        return None, None
+    if "://" not in ep:
+        ep = "https://" + ep
+    p = urlparse(ep)
+    path = p.path.strip("/")
+    if path:
+        return f"{p.scheme}://{p.netloc}", f"S3_ENDPOINT 末尾多了路径 /{path}，已自动忽略"
+    return f"{p.scheme}://{p.netloc}", None
 
 
 class LocalStorage:
@@ -62,7 +83,8 @@ class S3Storage:
 
         self.bucket = env("S3_BUCKET")
         self.public_base = env("S3_PUBLIC_BASE").rstrip("/")
-        endpoint = env("S3_ENDPOINT").rstrip("/") or None
+        endpoint, self.endpoint_note = normalize_endpoint(env("S3_ENDPOINT"))
+        self.endpoint = endpoint
 
         self.client = boto3.client(
             "s3",

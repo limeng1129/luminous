@@ -49,8 +49,23 @@ def run_checks(db_path, upload_dir):
     endpoint = os.environ.get("S3_ENDPOINT", "")
     public = os.environ.get("S3_PUBLIC_BASE", "").rstrip("/")
     key_masked = os.environ["S3_KEY"][:4] + "…" if os.environ.get("S3_KEY") else ""
-    out.append(("环境变量", OK,
-                f"桶名 {bucket}｜Key {key_masked}｜端点 {'已填' if endpoint else '（空，按 AWS S3 处理）'}", ""))
+    out.append(("环境变量", OK, f"桶名 {bucket}｜Key {key_masked}", ""))
+
+    # 端点格式：把真实值显示出来（账号 ID 打码），否则你看不出哪里填错了
+    from storage import normalize_endpoint
+    fixed_ep, ep_note = normalize_endpoint(endpoint)
+    if not endpoint:
+        out.append(("服务端点 S3_ENDPOINT", WARN, "没填，会按 AWS S3 处理",
+                    "用 Cloudflare R2 必须填：https://账号ID.r2.cloudflarestorage.com"))
+    else:
+        shown = _mask_endpoint(endpoint.strip())
+        if ep_note:
+            out.append(("服务端点 S3_ENDPOINT", WARN, f"{shown} —— {ep_note}",
+                        "Cloudflare 桶页面上显示的 S3 API 地址末尾带着桶名，不能直接用。"
+                        "正确写法只到域名为止：https://账号ID.r2.cloudflarestorage.com，"
+                        "后面不要跟桶名、不要带斜杠。（本次已自动忽略多余部分）"))
+        else:
+            out.append(("服务端点 S3_ENDPOINT", OK, shown, ""))
 
     # ── 3. 两个网址有没有填反 ─────────────────────────────────────────
     if not public:
@@ -119,6 +134,18 @@ def run_checks(db_path, upload_dir):
     return out
 
 
+def _mask_endpoint(ep: str) -> str:
+    """显示端点，但把账号 ID 中间打码；路径部分完整显示（错误通常就在这里）。"""
+    from urllib.parse import urlparse
+    e = ep if "://" in ep else "https://" + ep
+    p = urlparse(e)
+    host = p.netloc
+    sub, _, rest = host.partition(".")
+    if len(sub) > 8:
+        sub = sub[:6] + "***"
+    return f"{p.scheme}://{sub}.{rest}{p.path}"
+
+
 def _write_fix(msg: str) -> str:
     """按服务端返回的错误码，给出针对性的修复建议。"""
     m = msg.lower()
@@ -136,7 +163,11 @@ def _write_fix(msg: str) -> str:
                 "去 Cloudflare R2 → Manage R2 API Tokens 重建一个 Object Read & Write 的，"
                 "并确认它的适用范围包含你这个桶。")
     if "nosuchbucket" in m or "404" in m:
-        return "桶不存在或名字拼错了。核对 Cloudflare R2 里桶的名字，和 S3_BUCKET 必须完全一致。"
+        return ("404 = 按这个地址找不到桶。两个可能，按顺序查："
+                "① S3_ENDPOINT 写错了 —— 它必须只到域名为止 "
+                "https://账号ID.r2.cloudflarestorage.com，后面不能跟桶名。"
+                "Cloudflare 桶页面上显示的那个 S3 API 地址是带桶名的，不能直接复制；"
+                "② 账号 ID 或桶名拼错了，回 Cloudflare R2 首页核对一遍。")
     if "endpoint" in m or "connect" in m or "resolve" in m:
         return ("连不上服务地址。检查 S3_ENDPOINT 是否写对："
                 "https://账号ID.r2.cloudflarestorage.com（账号 ID 在 R2 首页能看到）。")

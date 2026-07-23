@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}登录 · 流光{% endblock %}
+{% block body %}
+<main class="login">
+  <h1>写作需要密码</h1>
+  <p>{% if error %}{{ error }}{% else %}输入管理员密码后即可发布文章和照片。{% endif %}</p>
+  <form method="post" action="/admin/login">
+    <div class="field"><input type="password" name="password" placeholder="密码" autofocus required></div>
+    <button class="btn-solid" type="submit" style="width:100%">进入</button>
+  </form>
+</main>
+{% endblock %}

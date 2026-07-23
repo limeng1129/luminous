@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}影像 · 流光{% endblock %}
+{% block body %}
+<section class="void" style="padding-top:calc(var(--nav-h) + clamp(64px,11vh,120px));min-height:100vh">
+  <div class="section-head"><h2>影像</h2>
+    <span class="label">{{ photos|length }} 张</span></div>
+  <p class="void-lede">原图存放。点开任意一张进入全屏，再点一次放大到实际尺寸，看清每一处细节。</p>
+  {% if photos %}
+  <div class="grid" id="grid">
+    {% for ph in photos %}
+    <button class="shot rise" data-i="{{ loop.index0 }}">
+      <img src="{{ ph.src }}" alt="{{ ph.title }}" loading="lazy">
+      <span class="shot-cap"><b>{{ ph.title }}</b><span>{{ ph.subtitle }}</span></span>
+    </button>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty"><h3>还没有照片</h3><p>上传第一张，它会在这片黑里发光。</p>
+    <a class="btn-line" href="/compose">去上传</a></div>
+  {% endif %}
+</section>
+{% include "_viewer.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script>window.PHOTOS = {{ photos_json|safe }};</script>
+<script src="{{ url_for('static', filename='js/viewer.js') }}"></script>
+{% endblock %}

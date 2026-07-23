@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}写 · 流光{% endblock %}
+{% block body %}
+<main class="compose">
+  <h1>写一篇</h1>
+  <p class="sub">正文支持 Markdown。写完点发布，文章会出现在首页。</p>
+
+  <div class="field">
+    <label>分类</label>
+    <div class="seg" id="catSeg">
+      {% for k, v in cats.items() %}
+      <button type="button" data-cat="{{ k }}" class="{% if loop.first %}on{% endif %}">{{ v.label }}</button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="field">
+    <label>标题</label>
+    <input id="title" maxlength="80" placeholder="比如「在洱海边住了七天」">
+  </div>
+
+  <div class="field">
+    <label>一句话导语（可选）</label>
+    <input id="dek" maxlength="120" placeholder="放在标题下面的那一句">
+  </div>
+
+  <div class="field">
+    <label>地点 · 时间（可选）</label>
+    <input id="place" maxlength="40" placeholder="比如「大理 · 去年秋天」">
+  </div>
+
+  <div class="field">
+    <label>封面照片</label>
+    <label class="drop" id="drop">
+      <input type="file" id="cover" accept="image/*">
+      <div id="dropInner"><p><b>点击选择</b>，或把图片拖进来</p></div>
+    </label>
+    <p class="tip">封面会用在首页大图和文章顶部。上传的原图会一并进入影像区。</p>
+  </div>
+
+  <div class="field">
+    <label>正文</label>
+    <textarea id="body" placeholder="从这里开始写。
+
+支持 Markdown：
+## 小标题
+**加粗**、*斜体*
+> 引用会排成居中的大字
+![图片说明](图片链接)
+--- 分隔线"></textarea>
+    <p class="tip">想在文中插图：先在下面「插入照片」上传，会自动把 Markdown 语句填进来。</p>
+  </div>
+
+  <div class="field">
+    <label>插入照片到正文</label>
+    <label class="drop" id="drop2">
+      <input type="file" id="inline" accept="image/*">
+      <div><p>选一张图，自动插到光标处</p></div>
+    </label>
+  </div>
+
+  <div class="compose-actions">
+    <button class="btn-solid" id="publish">发布</button>
+    <a class="btn-ghost" href="/">取消</a>
+    <span class="tip" id="status" style="margin:0"></span>
+  </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/compose.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} · 流光{% endblock %}
+{% block desc %}{{ post.dek or post.excerpt }}{% endblock %}
+{% block body %}
+<div class="progress" id="progress"></div>
+
+{% if post.cover %}
+<div class="a-hero"><img src="{{ post.cover }}" alt="{{ post.title }}"></div>
+{% endif %}
+
+<article>
+  <header class="a-head {% if not post.cover %}no-cover{% endif %}">
+    <div class="a-meta">
+      <span class="label">{{ cats[post.category].label }}</span>
+      <i class="dot"></i><time>{{ post.created_at[:10] }}</time>
+      <i class="dot"></i><span>{{ post.minutes }} 分钟</span>
+      {% if post.place %}<i class="dot"></i><span>{{ post.place }}</span>{% endif %}
+    </div>
+    <h1>{{ post.title }}</h1>
+    {% if post.dek %}<p class="a-dek">{{ post.dek }}</p>{% endif %}
+  </header>
+
+  <div class="a-body">{{ post.html|safe }}</div>
+
+  <footer class="a-foot">
+    <time>写于 {{ post.created_at[:10] }}</time>
+    <div style="display:flex;gap:10px;align-items:center">
+      <a class="btn-line dark" href="/writing">返回随笔</a>
+      {% if can_edit %}
+      <button class="btn-line dark" id="delPost" data-slug="{{ post.slug }}">删除</button>
+      {% endif %}
+    </div>
+  </footer>
+</article>
+
+{% if more %}
+<section class="section">
+  <div class="section-head"><h2>接着读</h2></div>
+  <div class="posts">
+    {% for p in more %}
+    <a class="card rise" href="/p/{{ p.slug }}">
+      <div class="card-img">{% if p.cover %}<img src="{{ p.cover }}" alt="{{ p.title }}" loading="lazy">{% endif %}</div>
+      <div class="card-meta"><span class="label">{{ cats[p.category].label }}</span>
+        <i class="dot"></i><time>{{ p.created_at[:10] }}</time></div>
+      <h3>{{ p.title }}</h3>
+      <p>{{ p.dek or p.excerpt }}</p>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/post.js') }}"></script>
+{% endblock %}

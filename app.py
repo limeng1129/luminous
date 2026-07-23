@@ -3,17 +3,20 @@
 Flask + SQLite。运行:python app.py，然后打开 http://127.0.0.1:5000
 """
 import io
+import json
 import os
 import time
 import uuid
 import datetime
 from flask import (
     Flask, request, jsonify, render_template,
-    send_from_directory
+    send_from_directory, redirect, abort
 )
 from storage import get_storage
 from onedrive import to_direct_link, is_onedrive_link
 from db import get_db, init_db, SQLITE_PATH, describe as db_describe, is_postgres
+from posts import (CATEGORIES as POST_CATEGORIES, list_posts, get_post, create_post,
+                   delete_post, is_admin, check_password, admin_cookie_value)
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 # 数据库与上传目录可通过环境变量指向持久化磁盘（部署到云平台时用）
@@ -87,14 +90,142 @@ def bootstrap():
 
 
 # ---------------------------------------------------------------- pages
+# 照片分类（影像区）与文章分类的对应
+POST_TO_PHOTO_CAT = {"travel": "travel", "life": "life", "reflection": "life"}
+
+
+def _save_upload(file, title, post_category):
+    """保存一张上传的图片并登记进影像区，返回可访问的 src。
+
+    出错时返回 (响应, 状态码) 元组，调用方直接 return 即可。
+    """
+    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    if ext not in ALLOWED_EXT:
+        return jsonify({"error": "不支持的图片格式，请用 JPG / PNG / WEBP / GIF"}), 400
+    blob = io.BytesIO(file.read())
+    try:
+        from PIL import Image
+        with Image.open(blob) as im:
+            width, height = im.size
+    except Exception:
+        return jsonify({"error": "这个文件好像不是有效的图片"}), 400
+
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    get_storage(UPLOAD_DIR).save(blob, filename, file.mimetype)
+
+    cat = POST_TO_PHOTO_CAT.get(post_category, "life")
+    now = datetime.datetime.now().isoformat(timespec="seconds")
+    with get_db() as c:
+        c.execute(
+            """INSERT INTO photos
+               (category, filename, url, title, subtitle, width, height, likes, created_at)
+               VALUES (?,?,?,?,?,?,?,0,?)""",
+            (cat, filename, None, (title or "未命名")[:60], "", width, height, now),
+        )
+    return get_storage(UPLOAD_DIR).url(filename)
+
+
+def _photo_list():
+    with get_db() as c:
+        rows = c.execute("SELECT * FROM photos ORDER BY id DESC").fetchall()
+    return [row_to_photo(r) for r in rows]
+
+
+@app.context_processor
+def inject_globals():
+    return {"cats": POST_CATEGORIES, "page": ""}
+
+
 @app.route("/")
 def index():
-    return render_template("index.html", categories=CATEGORIES)
+    posts = list_posts(limit=7)
+    photos = _photo_list()[:6]
+    return render_template("index.html", page="home",
+                           lead=posts[0] if posts else None, rest=posts[1:],
+                           photos=photos, photos_json=json.dumps(photos, ensure_ascii=False))
+
+
+@app.route("/writing")
+def writing():
+    cat = request.args.get("cat", "all")
+    return render_template("writing.html", page="writing",
+                           posts=list_posts(category=cat), cat=cat)
+
+
+@app.route("/p/<slug>")
+def post_page(slug):
+    post = get_post(slug)
+    if not post:
+        abort(404)
+    more = [p for p in list_posts(limit=4) if p["slug"] != slug][:3]
+    return render_template("post.html", page="writing", post=post, more=more,
+                           can_edit=is_admin(request))
+
+
+@app.route("/gallery")
+def gallery():
+    photos = _photo_list()
+    return render_template("gallery.html", page="gallery", photos=photos,
+                           photos_json=json.dumps(photos, ensure_ascii=False))
+
+
+@app.route("/compose")
+def compose():
+    if not is_admin(request):
+        return redirect("/admin/login")
+    return render_template("compose.html", page="compose")
 
 
 @app.route("/about")
 def about():
-    return render_template("about.html", categories=CATEGORIES)
+    return render_template("about.html", page="about")
+
+
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    if request.method == "POST":
+        if check_password(request.form.get("password")):
+            resp = redirect("/compose")
+            resp.set_cookie("luminous_admin", admin_cookie_value(),
+                            max_age=60 * 60 * 24 * 60, httponly=True, samesite="Lax")
+            return resp
+        return render_template("login.html", page="", error="密码不对，再试一次。")
+    if is_admin(request):
+        return redirect("/compose")
+    return render_template("login.html", page="")
+
+
+@app.post("/api/posts")
+def api_create_post():
+    if not is_admin(request):
+        return jsonify({"error": "需要先登录才能发布"}), 403
+    title = (request.form.get("title") or "").strip()
+    body = (request.form.get("body") or "").strip()
+    if not title or not body:
+        return jsonify({"error": "标题和正文都不能为空"}), 400
+    category = request.form.get("category", "reflection")
+    if category not in POST_CATEGORIES:
+        category = "reflection"
+
+    cover = None
+    f = request.files.get("cover")
+    if f and f.filename:
+        saved = _save_upload(f, title, category)
+        if isinstance(saved, tuple):
+            return saved
+        cover = saved
+
+    post = create_post(title, (request.form.get("dek") or "").strip(),
+                       body, category, cover, (request.form.get("place") or "").strip())
+    return jsonify(post), 201
+
+
+@app.delete("/api/posts/<slug>")
+def api_delete_post(slug):
+    if not is_admin(request):
+        return jsonify({"error": "需要先登录"}), 403
+    return (jsonify({"ok": True}) if delete_post(slug)
+            else (jsonify({"error": "文章不存在"}), 404))
 
 
 @app.route("/uploads/<path:name>")

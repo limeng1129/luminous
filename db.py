@@ -100,6 +100,18 @@ def init_db():
     """建表。两种数据库的自增主键写法不同。"""
     pk = "SERIAL PRIMARY KEY" if is_postgres() else "INTEGER PRIMARY KEY AUTOINCREMENT"
     with get_db() as c:
+        c.execute(f"""CREATE TABLE IF NOT EXISTS posts(
+            id         {pk},
+            slug       TEXT    UNIQUE NOT NULL,
+            category   TEXT    NOT NULL,
+            title      TEXT    NOT NULL,
+            dek        TEXT,
+            cover      TEXT,
+            body       TEXT    NOT NULL,
+            place      TEXT,
+            published  INTEGER DEFAULT 1,
+            created_at TEXT
+        )""")
         c.execute(f"""CREATE TABLE IF NOT EXISTS photos(
             id         {pk},
             category   TEXT    NOT NULL,

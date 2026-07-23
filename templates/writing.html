@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}随笔 · 流光{% endblock %}
+{% block body %}
+<section class="section" style="padding-top:calc(var(--nav-h) + clamp(60px,10vh,110px))">
+  <div class="section-head">
+    <h2>随笔</h2>
+    <div class="filters">
+      <button onclick="location.href='/writing'" class="{% if cat=='all' %}on{% endif %}">全部</button>
+      {% for k, v in cats.items() %}
+      <button onclick="location.href='/writing?cat={{ k }}'" class="{% if cat==k %}on{% endif %}">{{ v.label }}</button>
+      {% endfor %}
+    </div>
+  </div>
+  {% if posts %}
+  <div class="posts">
+    {% for p in posts %}
+    <a class="card rise {% if loop.first and cat=='all' %}lead{% endif %}" href="/p/{{ p.slug }}">
+      <div class="card-img">{% if p.cover %}<img src="{{ p.cover }}" alt="{{ p.title }}" loading="lazy">{% endif %}</div>
+      <div>
+        <div class="card-meta">
+          <span class="label">{{ cats[p.category].label }}</span>
+          <i class="dot"></i><time>{{ p.created_at[:10] }}</time>
+          <i class="dot"></i><span class="mins">{{ p.minutes }} 分钟</span>
+        </div>
+        <h3>{{ p.title }}</h3>
+        <p>{{ p.dek or p.excerpt }}</p>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty"><h3>这个分类还没有文章</h3><p>换一个分类看看，或者写下第一篇。</p>
+    <a class="btn-line dark" href="/compose">开始写</a></div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{% block title %}流光 Luminous{% endblock %}</title>
+<meta name="description" content="{% block desc %}旅行、感悟，与光。{% endblock %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<nav class="nav" id="nav">
+  <a class="nav-logo" href="/">流光</a>
+  <div class="nav-links">
+    <a href="/" class="{% if page=='home' %}on{% endif %}">首页</a>
+    <a href="/writing" class="{% if page=='writing' %}on{% endif %}">随笔</a>
+    <a href="/gallery" class="{% if page=='gallery' %}on{% endif %}">影像</a>
+    <a href="/about" class="{% if page=='about' %}on{% endif %}">关于</a>
+    <a href="/compose">写</a>
+  </div>
+</nav>
+
+{% block body %}{% endblock %}
+
+<footer class="foot">
+  <div class="foot-top">
+    <h3>把值得的瞬间，留在光里。</h3>
+    <div class="foot-nav">
+      <div class="foot-col">
+        <span class="label">阅读</span>
+        <a href="/writing?cat=travel">旅行</a>
+        <a href="/writing?cat=reflection">感悟</a>
+        <a href="/writing?cat=life">生活</a>
+      </div>
+      <div class="foot-col">
+        <span class="label">影像</span>
+        <a href="/gallery">全部照片</a>
+        <a href="/compose">写一篇</a>
+      </div>
+      <div class="foot-col">
+        <span class="label">关于</span>
+        <a href="/about">这个地方</a>
+        <a href="/health/storage">运行状态</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot-bot">
+    <span>流光 Luminous</span>
+    <span>照片以原图存放，点开可放大细看</span>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+<script src="{{ url_for('static', filename='js/site.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

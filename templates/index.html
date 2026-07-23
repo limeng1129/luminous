@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>流光 · 把值得的瞬间留在光里</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="aura"><b></b><b></b><b></b></div>
+<div class="grain"></div>
+
+<header>
+  <a class="brand" href="/" aria-label="流光 首页">
+    <span class="mark">流光</span>
+    <span class="en">Luminous</span>
+  </a>
+  <nav class="nav-actions">
+    <a class="ghost-btn" href="/about">关于</a>
+    <button class="solid-btn" onclick="openShare()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      分享
+    </button>
+  </nav>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="hero-copy">
+      <span class="hero-eyebrow">Photo Journal · 记录光</span>
+      <h1>把值得的瞬间<span class="l2">留在<em>光</em>里</span></h1>
+      <p class="lede">生活、旅行、爱情，还有那些说不清的午后。每一张照片都是一段被留下的时间——在这里,让它们重新发亮。</p>
+      <div class="hero-cta">
+        <a class="btn-lg btn-fill" href="#gallery">开始浏览</a>
+        <button class="btn-lg btn-out" onclick="openShare()">分享我的照片</button>
+      </div>
+      <div class="hero-stats">
+        <div><b id="stat-count">–</b><span>Moments</span></div>
+        <div><b id="stat-chapters">4</b><span>Chapters</span></div>
+        <div><b id="stat-likes">–</b><span>Loved</span></div>
+      </div>
+    </div>
+    <div class="hero-gallery" id="heroGallery">
+      <div class="float f1"><img alt="" id="hero-travel"><span class="fchip" style="color:var(--travel)">旅行</span></div>
+      <div class="float f2"><img alt="" id="hero-love"><span class="fchip" style="color:var(--love)">爱情</span></div>
+      <div class="float f3"><img alt="" id="hero-life"><span class="fchip" style="color:var(--life)">生活</span></div>
+    </div>
+  </section>
+
+  <div class="toolbar" id="gallery">
+    <div class="filters" id="filters"></div>
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="searchInput" type="text" placeholder="搜索关键词，比如「海」「深夜」" aria-label="搜索照片">
+    </div>
+  </div>
+
+  <div class="gallery" id="grid"></div>
+</main>
+
+<footer>
+  <div class="foot-top">
+    <h3>你也有值得<em>留下</em>的光吗</h3>
+    <div class="legend">
+      <span><i style="background:var(--life)"></i>生活 Life</span>
+      <span><i style="background:var(--travel)"></i>旅行 Travel</span>
+      <span><i style="background:var(--love)"></i>爱情 Love</span>
+      <span><i style="background:var(--nature)"></i>自然 Nature</span>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>流光 Luminous · 一个把瞬间留在光里的地方</span>
+    <span><a href="/about">关于这个项目</a></span>
+  </div>
+</footer>
+
+<!-- lightbox -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="照片预览">
+  <div class="lb-inner">
+    <div class="lb-img">
+      <button class="lb-close" onclick="closeLightbox()" aria-label="关闭"><svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      <button class="lb-nav lb-prev" onclick="lbNav(-1)" aria-label="上一张"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+      <button class="lb-nav lb-next" onclick="lbNav(1)" aria-label="下一张"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+      <img id="lbImg" src="" alt="">
+      <span class="lb-index" id="lbIndex"></span>
+    </div>
+    <div class="lb-side">
+      <span class="lb-tag" id="lbTag"></span>
+      <h2 id="lbTitle"></h2>
+      <p class="lb-sub" id="lbSub"></p>
+      <div class="lb-foot">
+        <button class="lb-like" id="lbLike" onclick="lbToggleLike()">
+          <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+          <span id="lbLikeText">喜欢</span>
+        </button>
+        <span class="lb-count" id="lbCount"></span>
+        <button class="lb-del" id="lbDel" onclick="lbDelete()" aria-label="删除这张照片" title="删除">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- share modal -->
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="分享照片">
+  <div class="sheet">
+    <h2>分享一张照片</h2>
+    <p class="sub">选一张本地照片，或粘贴一个图片链接。发布后会保存进你的画廊。</p>
+
+    <label class="drop" id="drop">
+      <input type="file" id="fileInput" accept="image/*">
+      <div id="dropInner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+        <p><b>点击选择照片</b><br>支持 JPG / PNG / WEBP / GIF，最大 12MB</p>
+      </div>
+    </label>
+
+    <div class="divider">或</div>
+
+    <div class="field">
+      <label for="urlInput">图片链接</label>
+      <input type="url" id="urlInput" placeholder="https://...">
+    </div>
+    <div class="field">
+      <label for="titleInput">给它写一句</label>
+      <input type="text" id="titleInput" placeholder="比如「你转身那刻，风刚好停」" maxlength="40">
+    </div>
+    <div class="field">
+      <label for="subInput">地点 · 时间（可选）</label>
+      <input type="text" id="subInput" placeholder="比如「洱海 · 去年夏天」" maxlength="30">
+    </div>
+    <div class="field">
+      <label>属于哪一章</label>
+      <div class="cat-picker" id="catPicker"></div>
+    </div>
+
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeShare()">取消</button>
+      <button class="btn-publish" id="publishBtn" onclick="publish()">发布</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><i></i><span id="toastText"></span></div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

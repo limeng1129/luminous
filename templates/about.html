@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>关于 · 流光 Luminous</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400;1,9..144,600&family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="aura"><b></b><b></b><b></b></div>
+<div class="grain"></div>
+
+<header>
+  <a class="brand" href="/" aria-label="流光 首页">
+    <span class="mark">流光</span>
+    <span class="en">Luminous</span>
+  </a>
+  <nav class="nav-actions">
+    <a class="ghost-btn" href="/">回到画廊</a>
+  </nav>
+</header>
+
+<main class="page">
+  <span class="eyebrow">About · 关于</span>
+  <h1>把值得的瞬间，<br>留在<em>光</em>里</h1>
+
+  <p>流光是一个安静的地方，用来存放那些不愿被时间冲淡的瞬间。<strong>一杯慢慢凉掉的咖啡、清晨裹着雾的山脊、你转身时刚好停下的风</strong>——它们都值得被好好留下。</p>
+
+  <p>这里没有点赞排行，没有非要你天天回来的提醒。你只需要在想记录的时候，把照片放进来，写上一句话。剩下的，交给光。</p>
+
+  <h2>四个章节</h2>
+  <div class="chapters">
+    <div class="chapter"><i style="background:var(--life)"></i><b>生活 Life</b><span>日常里那些微小的好</span></div>
+    <div class="chapter"><i style="background:var(--travel)"></i><b>旅行 Travel</b><span>去过的远方与路上</span></div>
+    <div class="chapter"><i style="background:var(--love)"></i><b>爱情 Love</b><span>关于你的那些时刻</span></div>
+    <div class="chapter"><i style="background:var(--nature)"></i><b>自然 Nature</b><span>山、海、风与四季</span></div>
+  </div>
+
+  <h2>关于你的照片</h2>
+  <p>所有照片都保存在<strong>你自己运行的这台服务器上</strong>，不会上传到任何第三方。上传的图片存在 <code>static/uploads/</code>，记录存在本地的 SQLite 数据库里。想备份或迁移，把整个文件夹拷走就行。</p>
+
+  <a class="back-link" href="/">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    回到画廊，开始记录
+  </a>
+</main>
+
+<footer>
+  <div class="foot-bottom">
+    <span>流光 Luminous · 一个把瞬间留在光里的地方</span>
+    <span>照片仅保存在你本地的服务器中</span>
+  </div>
+</footer>
+</body>
+</html>

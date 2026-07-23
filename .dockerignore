@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+luminous.db
+static/uploads/*
+!static/uploads/.gitkeep
+.venv/
+venv/
+.git/

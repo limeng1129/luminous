@@ -1,0 +1,21 @@
+# Render.com 一键部署配置。连接仓库后 Render 会自动读取本文件。
+services:
+  - type: web
+    name: luminous
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 1 --bind 0.0.0.0:$PORT --timeout 120
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.4
+
+# ── 想让上传的照片长期保存(免费实例重启会清空文件),升级付费实例并挂载磁盘 ──
+#    在上面的 service 里加:
+#      disk:
+#        name: luminous-data
+#        mountPath: /var/data
+#        sizeGB: 1
+#    再加两个环境变量:
+#      LUMINOUS_UPLOAD_DIR = /var/data/uploads
+#      LUMINOUS_DB         = /var/data/luminous.db

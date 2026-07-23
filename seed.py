@@ -2,11 +2,13 @@
 首次运行时生成一批示例照片（本地生成，不依赖网络），并写入数据库。
 生成的是按分类着色的抽象光影图 —— 之后你用真实照片替换即可。
 """
+import io
 import os
 import sqlite3
 import random
 import datetime
 from PIL import Image, ImageDraw, ImageFilter, ImageChops
+from storage import get_storage
 
 # (分类, 宽, 高, 标题, 地点·时间, 初始喜欢数)
 SEED_PHOTOS = [
@@ -71,7 +73,7 @@ def glow_blob(w, h, color, cx, cy, r):
     return layer.filter(ImageFilter.GaussianBlur(r * 0.55))
 
 
-def make_image(path, w, h, dark_hex, light_hex, seed):
+def make_image(w, h, dark_hex, light_hex, seed):
     rnd = random.Random(seed)
     top = hex2rgb(dark_hex)
     light = hex2rgb(light_hex)
@@ -90,7 +92,10 @@ def make_image(path, w, h, dark_hex, light_hex, seed):
     noise = Image.effect_noise((w, h), 22).convert("L").convert("RGB")
     img = Image.blend(img, noise, 0.05)
 
-    img.save(path, quality=88)
+    buf = io.BytesIO()
+    img.save(buf, "JPEG", quality=88)
+    buf.seek(0)
+    return buf
 
 
 def seed_if_empty(db_path, upload_dir):
@@ -108,7 +113,8 @@ def seed_if_empty(db_path, upload_dir):
         for i, (cat, w, h, title, sub, likes) in enumerate(SEED_PHOTOS):
             dark, light = PALETTE[cat]
             fn = f"seed_{i:02d}.jpg"
-            make_image(os.path.join(upload_dir, fn), w, h, dark, light, seed=i * 7 + 3)
+            buf = make_image(w, h, dark, light, seed=i * 7 + 3)
+            get_storage(upload_dir).save(buf, fn, "image/jpeg")
             conn.execute(
                 """INSERT INTO photos
                    (category, filename, url, title, subtitle, width, height, likes, created_at)

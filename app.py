@@ -2,6 +2,7 @@
 流光 Luminous — 图片分享网站后端
 Flask + SQLite。运行:python app.py，然后打开 http://127.0.0.1:5000
 """
+import io
 import os
 import sqlite3
 import uuid
@@ -10,6 +11,8 @@ from flask import (
     Flask, request, jsonify, render_template,
     send_from_directory
 )
+from storage import get_storage
+from onedrive import to_direct_link, is_onedrive_link
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 # 数据库与上传目录可通过环境变量指向持久化磁盘（部署到云平台时用）
@@ -56,7 +59,12 @@ def init_db():
 
 
 def row_to_photo(r):
-    src = f"/uploads/{r['filename']}" if r["filename"] else r["url"]
+    if r["url"]:
+        src = r["url"]
+    elif r["filename"]:
+        src = get_storage(UPLOAD_DIR).url(r["filename"])
+    else:
+        src = ""
     return {
         "id": r["id"],
         "category": r["category"],
@@ -128,17 +136,20 @@ def create_photo():
         ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
         if ext not in ALLOWED_EXT:
             return jsonify({"error": "不支持的图片格式，请用 JPG / PNG / WEBP / GIF"}), 400
-        filename = f"{uuid.uuid4().hex}.{ext}"
-        path = os.path.join(UPLOAD_DIR, filename)
-        file.save(path)
+        blob = io.BytesIO(file.read())
         try:
             from PIL import Image
-            with Image.open(path) as im:
+            with Image.open(blob) as im:
                 width, height = im.size
         except Exception:
-            pass
+            return jsonify({"error": "这个文件好像不是有效的图片"}), 400
+        filename = f"{uuid.uuid4().hex}.{ext}"
+        get_storage(UPLOAD_DIR).save(blob, filename, file.mimetype)
         url = None
     elif url:
+        # OneDrive / SharePoint 分享链接自动转成可直接显示的直链
+        if is_onedrive_link(url):
+            url = to_direct_link(url)
         try:
             width = int(request.form.get("width") or 800)
             height = int(request.form.get("height") or 1000)
@@ -182,12 +193,7 @@ def delete_photo(pid):
         if not r:
             return jsonify({"error": "照片不存在"}), 404
         if r["filename"]:
-            fp = os.path.join(UPLOAD_DIR, r["filename"])
-            if os.path.exists(fp):
-                try:
-                    os.remove(fp)
-                except OSError:
-                    pass
+            get_storage(UPLOAD_DIR).delete(r["filename"])
         c.execute("DELETE FROM photos WHERE id=?", (pid,))
     return jsonify({"ok": True})
 

@@ -124,3 +124,31 @@ def init_db():
             likes      INTEGER DEFAULT 0,
             created_at TEXT
         )""")
+
+
+def existing_columns(table):
+    """列出某张表已有的列名。两种数据库查法不同。"""
+    with get_db() as c:
+        if is_postgres():
+            rows = c.execute(
+                "SELECT column_name AS name FROM information_schema.columns "
+                "WHERE table_name=%s", (table,)).fetchall()
+        else:
+            rows = c.execute(f"PRAGMA table_info({table})").fetchall()
+    return {r["name"] for r in rows}
+
+
+def migrate():
+    """给老库补上新加的列。已经有了就跳过，不会报错。
+
+    注意：Postgres 里一条语句失败会让整个事务作废，
+    所以这里先查有哪些列，而不是靠 try/except 硬撞。
+    """
+    have = existing_columns("photos")
+    wanted = [("rgb", "TEXT"), ("light", "INTEGER"), ("warm", "INTEGER"),
+              ("hour", "INTEGER"), ("hour_src", "TEXT")]
+    for col, decl in wanted:
+        if col in have:
+            continue
+        with get_db() as c:
+            c.execute(f"ALTER TABLE photos ADD COLUMN {col} {decl}")

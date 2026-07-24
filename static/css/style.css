@@ -421,3 +421,298 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
   .v-btn{width:40px;height:40px}
   .viewer-bar .hint{display:none}
 }
+
+/* ============================================================
+   光谱 —— 把所有照片压成一条光带
+   ============================================================ */
+.spec{min-height:100vh;padding-top:calc(var(--nav-h) + clamp(22px,4vh,56px));
+  padding-bottom:clamp(22px,3.6vh,48px);display:flex;flex-direction:column;justify-content:center}
+.spec-head{padding:0 var(--gut);text-align:center;margin-bottom:clamp(16px,2.4vh,32px)}
+.spec-head h1{
+  font-size:clamp(30px,4.4vw,50px);font-weight:600;letter-spacing:-.035em;
+  margin:10px 0 12px;color:var(--void-ink);
+}
+.spec-lede{
+  font-family:var(--serif);font-size:clamp(14.5px,1.5vw,17px);line-height:1.75;
+  color:var(--void-ash);max-width:34ch;margin:0 auto;letter-spacing:0;
+}
+
+/* 预览区 */
+.spec-stage{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:0 var(--gut);min-height:0;
+}
+.spec-preview{
+  position:relative;width:100%;height:clamp(180px,32vh,380px);
+  display:grid;place-items:center;overflow:hidden;
+}
+/* 绝对定位 + object-fit：无论原图多大，都严格待在这个框里。
+   之前用 max-height:100% 会被 grid 行高撑破，图片盖住下面的光带和按钮。 */
+.spec-preview img{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:contain;object-position:center;
+  opacity:0;transition:opacity .45s var(--ease);
+  filter:drop-shadow(0 24px 60px rgba(0,0,0,.85));
+}
+.spec-preview img.on{opacity:1}
+.spec-hint{
+  position:absolute;font-size:13.5px;color:var(--void-ash);letter-spacing:.06em;
+  transition:opacity .4s var(--ease);
+}
+.spec-hint.off{opacity:0}
+.spec-meta{
+  margin-top:14px;text-align:center;min-height:44px;
+  opacity:0;transition:opacity .4s var(--ease);
+}
+.spec-meta.on{opacity:1}
+.spec-meta b{display:block;font-size:16px;font-weight:500;color:var(--void-ink);
+  letter-spacing:-.015em}
+.spec-meta span{font-size:13px;color:var(--void-ash)}
+
+/* 光带本体 */
+.band-wrap{padding:clamp(18px,2.8vh,34px) var(--gut) 0}
+.band{
+  position:relative;height:clamp(110px,15vh,170px);width:100%;
+  border-radius:4px;overflow:hidden;cursor:crosshair;
+  background:var(--void-2);touch-action:pan-y;
+}
+.band i{
+  position:absolute;top:0;bottom:0;display:block;
+  transition:left .85s var(--slow),width .85s var(--slow),
+             transform .35s var(--ease),filter .35s var(--ease);
+  transform-origin:center bottom;
+}
+.band i.hot{transform:scaleY(1.14);filter:brightness(1.3);z-index:2}
+.band-axis{
+  display:flex;justify-content:space-between;margin-top:12px;
+  font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--void-ash);
+}
+
+/* 排序切换 */
+.spec-sorts{display:flex;justify-content:center;gap:8px;padding:clamp(18px,2.8vh,32px) var(--gut) 0}
+.spec-sorts button{
+  padding:9px 22px;border-radius:100px;font-size:14px;color:var(--void-ash);
+  border:1px solid rgba(255,255,255,.16);transition:.3s var(--ease);
+}
+.spec-sorts button:hover{color:var(--void-ink);border-color:rgba(255,255,255,.4)}
+.spec-sorts button.on{background:var(--void-ink);color:var(--void);border-color:transparent;font-weight:600}
+
+.spec-note{
+  text-align:center;padding:clamp(24px,4vh,40px) var(--gut) 0;
+  font-size:13.5px;color:var(--void-ash);
+}
+.spec-note button{
+  margin-left:10px;padding:7px 16px;border-radius:100px;font-size:13px;
+  border:1px solid rgba(255,255,255,.28);color:var(--void-ink);transition:.3s var(--ease);
+}
+.spec-note button:hover{background:rgba(255,255,255,.12)}
+
+@media(max-width:640px){
+  .band{height:clamp(110px,16vh,150px);cursor:default}
+  .spec-preview{height:clamp(170px,28vh,260px)}
+}
+
+/* ============================================================
+   地图 —— 走过的地方连成的形状
+   ============================================================ */
+.mapsec{min-height:100vh;padding-top:calc(var(--nav-h) + clamp(22px,4vh,56px));
+  padding-bottom:clamp(24px,4vh,52px);display:flex;flex-direction:column}
+.map-head{padding:0 var(--gut);text-align:center;margin-bottom:clamp(14px,2.2vh,28px)}
+.map-head h1{font-size:clamp(30px,4.4vw,50px);font-weight:600;letter-spacing:-.035em;
+  margin:10px 0 12px;color:var(--void-ink)}
+.map-lede{font-family:var(--serif);font-size:clamp(14.5px,1.5vw,17px);line-height:1.75;
+  color:var(--void-ash);max-width:36ch;margin:0 auto;letter-spacing:0}
+
+.map-stage{position:relative;flex:1;min-height:clamp(280px,42vh,560px);padding:0 var(--gut)}
+/* SVG 会按 viewBox 比例自己算高度，把 flex 约束顶掉，
+   所以直接绝对定位钉死在容器里，让 preserveAspectRatio 去做缩放。 */
+.atlas{position:absolute;top:0;bottom:0;left:var(--gut);right:var(--gut);
+  width:auto;height:auto;overflow:visible}
+
+/* 经纬网格 */
+.atlas .grid line{stroke:rgba(255,255,255,.055);stroke-width:1}
+.atlas .gridlab{fill:rgba(255,255,255,.20);font-size:9px;letter-spacing:.08em;
+  font-family:var(--sans)}
+/* 参照城市 */
+.atlas .anchors circle{fill:rgba(255,255,255,.22)}
+.atlas .anchors text{fill:rgba(255,255,255,.26);font-size:10px;font-family:var(--sans);
+  letter-spacing:.02em}
+/* 走过的路径 */
+.atlas .trail{fill:none;stroke:rgba(255,255,255,.30);stroke-width:1.1;
+  stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:3 5}
+/* 光点 */
+.atlas .spot{cursor:pointer;opacity:0;animation:spotIn .9s var(--slow) forwards}
+@keyframes spotIn{to{opacity:1}}
+.atlas .halo{fill:#fff;opacity:.07;transition:opacity .4s var(--ease),r .4s var(--ease)}
+.atlas .core{fill:#fff;transition:r .35s var(--ease)}
+.atlas .name{fill:rgba(255,255,255,.72);font-size:12px;font-family:var(--sans);
+  text-anchor:middle;font-weight:500;letter-spacing:-.01em;
+  transition:fill .3s var(--ease);pointer-events:none}
+.atlas .spot:hover .halo,.atlas .spot:focus-visible .halo{opacity:.20}
+.atlas .spot:hover .name,.atlas .spot:focus-visible .name{fill:#fff}
+.atlas .spot:focus{outline:none}
+.atlas .spot:focus-visible .core{stroke:#fff;stroke-width:2}
+
+/* 点开某地后的卡片 */
+.map-card{
+  position:absolute;right:var(--gut);top:0;width:min(340px,calc(100% - var(--gut)*2));
+  max-height:100%;overflow-y:auto;padding:24px;border-radius:14px;
+  background:rgba(16,16,16,.86);backdrop-filter:blur(22px);
+  border:1px solid rgba(255,255,255,.12);
+  opacity:0;transform:translateY(10px);pointer-events:none;
+  transition:.45s var(--slow);
+}
+.map-card.open{opacity:1;transform:none;pointer-events:auto}
+.map-card h3{font-size:22px;font-weight:600;letter-spacing:-.025em;color:var(--void-ink);
+  margin-bottom:4px}
+.map-card > p{font-size:12.5px;color:var(--void-ash);margin-bottom:18px}
+.map-card a{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:11px 0;border-top:1px solid rgba(255,255,255,.1)}
+.map-card a b{font-size:14.5px;font-weight:500;color:var(--void-ink);line-height:1.4}
+.map-card a time{font-size:11.5px;color:var(--void-ash);flex-shrink:0}
+.map-card a:hover b{opacity:.7}
+.map-card-x{position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:50%;
+  display:grid;place-items:center;color:var(--void-ash);transition:.3s}
+.map-card-x:hover{background:rgba(255,255,255,.12);color:var(--void-ink)}
+.map-card-x svg{width:15px;height:15px}
+.map-card-shots{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:14px}
+.mini{aspect-ratio:1;border-radius:5px;overflow:hidden;background:var(--void-2);cursor:zoom-in}
+.mini img{width:100%;height:100%;object-fit:cover;transition:transform .6s var(--slow)}
+.mini:hover img{transform:scale(1.08)}
+
+.map-foot{padding:clamp(14px,2.4vh,26px) var(--gut) 0;text-align:center}
+.map-legend{display:flex;justify-content:center;gap:24px;font-size:12px;color:var(--void-ash)}
+.map-legend span{display:flex;align-items:center;gap:7px}
+.map-legend i{width:8px;height:8px;border-radius:50%;display:block}
+.lg-spot{background:#fff}
+.lg-anchor{background:rgba(255,255,255,.26)}
+.map-miss{margin-top:12px;font-size:12px;color:var(--faint);opacity:.7}
+.map-miss code{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;
+  background:rgba(255,255,255,.08);padding:.1em .4em;border-radius:4px}
+
+@media(max-width:860px){
+  .map-card{position:relative;right:auto;top:auto;width:100%;margin-top:16px;max-height:none}
+  .map-stage{flex-direction:column}
+  .atlas{min-height:clamp(260px,40vh,420px)}
+}
+/* 密集处藏起来的标签，悬停时再显示 */
+.atlas .name.shy{opacity:0;transition:opacity .3s var(--ease)}
+.atlas .spot:hover .name.shy,.atlas .spot:focus-visible .name.shy{opacity:1}
+
+/* ============================================================
+   此刻 —— 一天二十四小时的光
+   ============================================================ */
+.hoursec{
+  min-height:100vh;padding-top:calc(var(--nav-h) + clamp(22px,4vh,56px));
+  padding-bottom:clamp(24px,4vh,52px);display:flex;flex-direction:column;
+  position:relative;isolation:isolate;
+}
+/* 整页染上当前钟点的光。很淡，只是让人觉得"这会儿的空气不太一样"。 */
+.hoursec::before{
+  content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(120% 62% at 50% 4%,var(--glow,transparent),transparent 68%);
+  opacity:0;transition:opacity 1.4s var(--slow),background 1.4s var(--slow);
+}
+.hoursec.lit::before{opacity:.30}
+
+.hour-head{padding:0 var(--gut);text-align:center;margin-bottom:clamp(16px,2.6vh,34px)}
+.hour-head h1{font-size:clamp(30px,4.4vw,50px);font-weight:600;letter-spacing:-.035em;
+  margin:10px 0 12px;color:var(--void-ink)}
+.hour-lede{font-family:var(--serif);font-size:clamp(14.5px,1.5vw,17px);line-height:1.75;
+  color:var(--void-ash);max-width:36ch;margin:0 auto;letter-spacing:0}
+
+/* 二十四格 */
+.clock-wrap{padding:0 var(--gut)}
+.clock{
+  display:grid;grid-template-columns:repeat(24,1fr);gap:3px;
+  height:clamp(96px,15vh,168px);align-items:flex-end;
+}
+.hcell{
+  height:var(--hgt,20%);background:var(--c);border-radius:3px;
+  transition:height .7s var(--slow),transform .35s var(--ease),
+             filter .35s var(--ease),box-shadow .5s var(--ease);
+  transform-origin:center bottom;cursor:pointer;position:relative;
+}
+.hcell.bare{background:rgba(255,255,255,.06);cursor:default}
+.hcell:hover{filter:brightness(1.35)}
+.hcell.on{
+  transform:scaleY(1.06);filter:brightness(1.5);
+  box-shadow:0 0 26px -4px var(--c);z-index:2;
+}
+.hcell.on::after{
+  content:"";position:absolute;left:50%;transform:translateX(-50%);
+  bottom:-13px;width:1px;height:8px;background:rgba(255,255,255,.5);
+}
+.clock-axis{
+  display:flex;justify-content:space-between;margin-top:16px;
+  font-size:11px;letter-spacing:.14em;color:var(--void-ash);
+}
+
+/* 此刻这一格的内容 */
+.hour-now{padding:clamp(20px,3.2vh,40px) var(--gut) 0;flex:1;min-height:0}
+.hour-now-line{
+  text-align:center;font-family:var(--serif);font-size:clamp(15.5px,1.8vw,20px);
+  line-height:1.65;color:var(--void-ink);letter-spacing:0;margin-bottom:clamp(16px,2.4vh,28px);
+}
+.hour-now-line b{font-weight:600}
+.hour-empty{text-align:center;font-size:13.5px;color:var(--void-ash)}
+.hour-shots{
+  display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;
+  scrollbar-width:none;justify-content:flex-start;
+}
+.hour-shots::-webkit-scrollbar{display:none}
+@media(min-width:900px){.hour-shots{justify-content:center;flex-wrap:wrap;overflow:visible}}
+.hshot{
+  position:relative;flex:0 0 auto;width:clamp(128px,13vw,182px);aspect-ratio:4/5;
+  border-radius:6px;overflow:hidden;background:var(--void-2);cursor:zoom-in;
+  opacity:0;animation:hIn .8s var(--slow) forwards;
+}
+@keyframes hIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.hshot img{width:100%;height:100%;object-fit:cover;transition:transform 1s var(--slow)}
+.hshot:hover img{transform:scale(1.05)}
+.hshot span{
+  position:absolute;left:0;right:0;bottom:0;padding:34px 12px 11px;text-align:left;
+  background:linear-gradient(180deg,transparent,rgba(0,0,0,.78));
+  opacity:0;transition:opacity .45s var(--ease);
+}
+.hshot:hover span{opacity:1}
+.hshot span b{display:block;font-size:13px;font-weight:500;color:#fff;line-height:1.35}
+.hshot span i{font-size:11px;color:rgba(255,255,255,.62);font-style:normal}
+
+.hour-foot{padding:clamp(14px,2.2vh,28px) var(--gut) 0;text-align:center;
+  font-size:13.5px;color:var(--void-ash);line-height:1.7}
+.hour-foot b{color:var(--void-ink);font-weight:600}
+.hour-miss{margin-top:8px;font-size:12px;color:var(--faint);opacity:.75;
+  max-width:46ch;margin-left:auto;margin-right:auto}
+
+/* 首页上那条安静的横带 */
+.nowbar{
+  display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
+  padding:clamp(26px,4vh,42px) var(--gut);
+  border-top:1px solid var(--edge);border-bottom:1px solid var(--edge);
+  position:relative;overflow:hidden;
+}
+.nowbar::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:linear-gradient(90deg,var(--glow,transparent),transparent 62%);
+  opacity:.16;
+}
+.nowbar > *{position:relative;z-index:1}
+.nowbar p{font-family:var(--serif);font-size:clamp(15px,1.7vw,19px);line-height:1.6;
+  letter-spacing:0;max-width:44ch}
+.nowbar p b{font-weight:600}
+.nowbar a{
+  display:inline-flex;align-items:center;gap:8px;font-size:14.5px;font-weight:500;
+  white-space:nowrap;
+}
+.nowbar a svg{width:15px;height:15px;transition:transform .4s var(--ease)}
+.nowbar a:hover svg{transform:translateX(4px)}
+.nowbar-shots{display:flex;gap:8px}
+.nowbar-shots img{width:56px;height:70px;object-fit:cover;border-radius:4px}
+
+@media(max-width:640px){
+  .clock{gap:2px;height:clamp(80px,12vh,120px)}
+  .hcell{border-radius:2px}
+  .clock-axis{font-size:10px}
+  .nowbar-shots{display:none}
+}

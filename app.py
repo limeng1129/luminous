@@ -14,7 +14,10 @@ from flask import (
 )
 from storage import get_storage
 from onedrive import to_direct_link, is_onedrive_link
-from db import get_db, init_db, SQLITE_PATH, describe as db_describe, is_postgres
+from db import get_db, init_db, migrate, SQLITE_PATH, describe as db_describe, is_postgres
+from places import collect as collect_places
+from hours import detect_hour, hour_data
+from spectrum import analyze_image, analyze_stored, save_colors, spectrum_data, count_missing
 from posts import (CATEGORIES as POST_CATEGORIES, list_posts, get_post, create_post,
                    delete_post, is_admin, check_password, admin_cookie_value)
 
@@ -55,6 +58,11 @@ def row_to_photo(r):
         "height": r["height"],
         "likes": r["likes"],
         "created_at": r["created_at"],
+        "rgb": r["rgb"] if "rgb" in r.keys() else None,
+        "light": r["light"] if "light" in r.keys() else None,
+        "warm": r["warm"] if "warm" in r.keys() else None,
+        "hour": r["hour"] if "hour" in r.keys() else None,
+        "hour_src": r["hour_src"] if "hour_src" in r.keys() else None,
     }
 
 
@@ -76,6 +84,7 @@ def bootstrap():
         pass
     try:
         init_db()
+        migrate()
     except Exception as e:
         BOOT_ERROR = f"数据库初始化失败：{type(e).__name__}: {e}"
         print(f"  [启动警告] {BOOT_ERROR}")
@@ -112,15 +121,19 @@ def _save_upload(file, title, post_category):
 
     filename = f"{uuid.uuid4().hex}.{ext}"
     get_storage(UPLOAD_DIR).save(blob, filename, file.mimetype)
+    rgb, light, warm = analyze_image(blob)
+    hour, hour_src = detect_hour(blob, title)
 
     cat = POST_TO_PHOTO_CAT.get(post_category, "life")
     now = datetime.datetime.now().isoformat(timespec="seconds")
     with get_db() as c:
         c.execute(
             """INSERT INTO photos
-               (category, filename, url, title, subtitle, width, height, likes, created_at)
-               VALUES (?,?,?,?,?,?,?,0,?)""",
-            (cat, filename, None, (title or "未命名")[:60], "", width, height, now),
+               (category, filename, url, title, subtitle, width, height, likes,
+                created_at, rgb, light, warm, hour, hour_src)
+               VALUES (?,?,?,?,?,?,?,0,?,?,?,?,?,?)""",
+            (cat, filename, None, (title or "未命名")[:60], "", width, height, now,
+             rgb, light, warm, hour, hour_src),
         )
     return get_storage(UPLOAD_DIR).url(filename)
 
@@ -140,9 +153,12 @@ def inject_globals():
 def index():
     posts = list_posts(limit=7)
     photos = _photo_list()[:6]
+    hours = hour_data(_photo_list())
     return render_template("index.html", page="home",
                            lead=posts[0] if posts else None, rest=posts[1:],
-                           photos=photos, photos_json=json.dumps(photos, ensure_ascii=False))
+                           photos=photos, photos_json=json.dumps(photos, ensure_ascii=False),
+                           hours_json=json.dumps(hours, ensure_ascii=False),
+                           hours_known=hours["known"])
 
 
 @app.route("/writing")
@@ -174,6 +190,50 @@ def compose():
     if not is_admin(request):
         return redirect("/admin/login")
     return render_template("compose.html", page="compose")
+
+
+@app.route("/spectrum")
+def spectrum_page():
+    photos = _photo_list()
+    data = spectrum_data(photos)
+    return render_template("spectrum.html", page="spectrum",
+                           count=len(photos), missing=count_missing(),
+                           data_json=json.dumps(data, ensure_ascii=False))
+
+
+@app.post("/api/spectrum/analyze")
+def spectrum_analyze():
+    """给还没算过颜色的照片补算。一次最多处理 40 张，避免请求超时。"""
+    if not is_admin(request):
+        return jsonify({"error": "需要先登录"}), 403
+    done = 0
+    for p in _photo_list():
+        if p.get("rgb"):
+            continue
+        if done >= 40:
+            break
+        res = analyze_stored(p["src"], UPLOAD_DIR)
+        if res:
+            save_colors(p["id"], *res)
+            done += 1
+    return jsonify({"analyzed": done, "remaining": count_missing()})
+
+
+@app.route("/map")
+def map_page():
+    posts = list_posts()
+    photos = _photo_list()
+    data = collect_places(posts, photos)
+    return render_template("map.html", page="map",
+                           spots=len(data["spots"]), unknown=data["unknown"],
+                           data_json=json.dumps(data, ensure_ascii=False))
+
+
+@app.route("/hour")
+def hour_page():
+    data = hour_data(_photo_list())
+    return render_template("hour.html", page="hour", info=data,
+                           data_json=json.dumps(data, ensure_ascii=False))
 
 
 @app.route("/about")
@@ -262,6 +322,8 @@ def create_photo():
     url = (request.form.get("url") or "").strip()
     file = request.files.get("file")
     filename, width, height = None, 800, 1000
+    rgb, light, warm = "#808080", 50, 0
+    hour, hour_src = None, None
 
     if file and file.filename:
         ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
@@ -276,6 +338,8 @@ def create_photo():
             return jsonify({"error": "这个文件好像不是有效的图片"}), 400
         filename = f"{uuid.uuid4().hex}.{ext}"
         get_storage(UPLOAD_DIR).save(blob, filename, file.mimetype)
+        rgb, light, warm = analyze_image(blob)
+        hour, hour_src = detect_hour(blob, title, subtitle)
         url = None
     elif url:
         # OneDrive / SharePoint 分享链接自动转成可直接显示的直链
@@ -296,9 +360,11 @@ def create_photo():
     with get_db() as c:
         new_id = c.insert_returning_id(
             """INSERT INTO photos
-               (category, filename, url, title, subtitle, width, height, likes, created_at)
-               VALUES (?,?,?,?,?,?,?,0,?)""",
-            (category, filename, url, title, subtitle, width, height, now),
+               (category, filename, url, title, subtitle, width, height, likes,
+                created_at, rgb, light, warm, hour, hour_src)
+               VALUES (?,?,?,?,?,?,?,0,?,?,?,?,?,?)""",
+            (category, filename, url, title, subtitle, width, height, now,
+             rgb, light, warm, hour, hour_src),
         )
         r = c.execute("SELECT * FROM photos WHERE id=?", (new_id,)).fetchone()
     return jsonify(row_to_photo(r)), 201

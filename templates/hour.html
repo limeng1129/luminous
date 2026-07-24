@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}此刻 · 流光{% endblock %}
+{% block desc %}一天二十四小时的光，用你自己的照片画出来。{% endblock %}
+{% block body %}
+<section class="void hoursec" id="hoursec">
+  <header class="hour-head">
+    <span class="label">This Hour</span>
+    <h1 id="hTitle">此刻</h1>
+    <p class="hour-lede" id="hLede">
+      {% if info.known %}你的照片里，有 {{ info.known }} 张能认出拍摄的时辰。
+      下面这条带子是它们拼成的一天。{% else %}
+      还没有能认出时辰的照片。手机拍的照片自带拍摄时间，传上来就会出现在这里。{% endif %}
+    </p>
+  </header>
+
+  {% if info.known %}
+  <div class="clock-wrap">
+    <div class="clock" id="clock"></div>
+    <div class="clock-axis">
+      <span>0</span><span>6</span><span>12</span><span>18</span><span>24</span>
+    </div>
+  </div>
+
+  <div class="hour-now" id="nowBox">
+    <p class="hour-now-line" id="nowLine"></p>
+    <div class="hour-shots" id="nowShots"></div>
+    <p class="hour-empty" id="nowEmpty"></p>
+  </div>
+
+  <div class="hour-foot">
+    {% if info.peak %}
+    <p>你拍得最多的时辰是<b>{{ info.peak.label }}</b>（{{ info.peak.hour }} 点，{{ info.peak.count }} 张）。</p>
+    {% endif %}
+    {% if info.unknown %}
+    <p class="hour-miss">另有 {{ info.unknown }} 张认不出时辰，没有放进来。
+      手机照片自带拍摄时间；也可以在说明里写「清晨」「傍晚」这类词。</p>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty"><h3>还没有时辰</h3>
+    <p>传几张手机拍的照片，它们自带拍摄时间，这条带子就会亮起来。</p>
+    <a class="btn-line" href="/compose">去上传</a></div>
+  {% endif %}
+</section>
+
+{% include "_viewer.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script>window.HOURS = {{ data_json|safe }};</script>
+<script src="{{ url_for('static', filename='js/hour.js') }}"></script>
+{% endblock %}

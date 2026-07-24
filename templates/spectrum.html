@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}光谱 · 流光{% endblock %}
+{% block desc %}把所有照片压成一条光带，按时间、冷暖或明暗重新排列。{% endblock %}
+{% block body %}
+<section class="void spec" id="spec">
+  <header class="spec-head">
+    <span class="label">Spectrum</span>
+    <h1>光谱</h1>
+    <p class="spec-lede">
+      {% if count %}{{ count }} 张照片，各自被压成一道光。
+      横着划过去，它们会一张张浮出来。{% else %}
+      还没有照片。上传几张，这里会长出一条光带。{% endif %}
+    </p>
+  </header>
+
+  {% if count %}
+  <div class="spec-stage">
+    <div class="spec-preview" id="preview">
+      <img id="pImg" src="" alt="">
+      <div class="spec-hint" id="hint">划过下面那条光带</div>
+    </div>
+    <div class="spec-meta" id="meta"><b id="pTitle"></b><span id="pSub"></span></div>
+  </div>
+
+  <div class="band-wrap">
+    <div class="band" id="band"></div>
+    <div class="band-axis"><span id="axL"></span><span id="axR"></span></div>
+  </div>
+
+  <div class="spec-sorts">
+    <button data-sort="time" class="on">时间</button>
+    <button data-sort="warm">冷暖</button>
+    <button data-sort="light">明暗</button>
+  </div>
+
+  {% if missing %}
+  <div class="spec-note">
+    有 {{ missing }} 张照片还没分析过颜色，暂时显示为灰色。
+    <button id="analyze">现在分析</button>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="empty"><h3>光带是空的</h3><p>上传第一张照片，它会成为这条光带的第一道颜色。</p>
+    <a class="btn-line" href="/compose">去上传</a></div>
+  {% endif %}
+</section>
+
+{% include "_viewer.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script>window.SPEC = {{ data_json|safe }}; window.PHOTOS = window.SPEC.items;</script>
+<script src="{{ url_for('static', filename='js/viewer.js') }}"></script>
+<script src="{{ url_for('static', filename='js/spectrum.js') }}"></script>
+{% endblock %}

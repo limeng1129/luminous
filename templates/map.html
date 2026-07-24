@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}地图 · 流光{% endblock %}
+{% block desc %}走过的地方连成的形状。{% endblock %}
+{% block body %}
+<section class="void mapsec" id="mapsec">
+  <header class="map-head">
+    <span class="label">Atlas</span>
+    <h1>走过的地方</h1>
+    <p class="map-lede">
+      {% if spots %}{{ spots }} 处地点，按去过的先后连起来。
+      点亮的是你留下过文字或照片的地方。{% else %}
+      还没有能认出来的地点。在文章的「地点」或照片说明里写上城市名，它们会出现在这里。{% endif %}
+    </p>
+  </header>
+
+  {% if spots %}
+  <div class="map-stage">
+    <svg id="atlas" class="atlas" role="img" aria-label="走过的地方"></svg>
+    <div class="map-card" id="card">
+      <button class="map-card-x" id="cardX" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+      <h3 id="cardName"></h3>
+      <p id="cardCount"></p>
+      <div id="cardPosts"></div>
+      <div class="map-card-shots" id="cardShots"></div>
+    </div>
+  </div>
+
+  <div class="map-foot">
+    <div class="map-legend">
+      <span><i class="lg-spot"></i>去过的地方</span>
+      <span><i class="lg-anchor"></i>参照城市</span>
+    </div>
+    {% if unknown %}
+    <p class="map-miss">还认不出这些地点：{{ unknown|join('、') }}。
+      在 <code>places.py</code> 里补一行坐标即可。</p>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty"><h3>地图还是空的</h3>
+    <p>写文章时填上「地点」，比如「大理 · 去年秋天」，这里就会亮起一个点。</p>
+    <a class="btn-line" href="/compose">去写一篇</a></div>
+  {% endif %}
+</section>
+
+{% include "_viewer.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script>window.ATLAS = {{ data_json|safe }};</script>
+<script src="{{ url_for('static', filename='js/atlas.js') }}"></script>
+{% endblock %}

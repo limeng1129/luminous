@@ -9,6 +9,8 @@ import datetime
 from PIL import Image, ImageDraw, ImageFilter, ImageChops
 from storage import get_storage
 from db import get_db
+from spectrum import analyze_image
+from hours import detect_hour
 
 # (分类, 宽, 高, 标题, 地点·时间, 初始喜欢数)
 SEED_PHOTOS = [
@@ -113,10 +115,13 @@ def seed_if_empty(upload_dir):
             fn = f"seed_{i:02d}.jpg"
             buf = make_image(w, h, dark, light, seed=i * 7 + 3)
             get_storage(upload_dir).save(buf, fn, "image/jpeg")
+            rgb, lt, wm = analyze_image(buf)
+            hr, hsrc = detect_hour(buf, sub, title)
             conn.execute(
                 """INSERT INTO photos
-                   (category, filename, url, title, subtitle, width, height, likes, created_at)
-                   VALUES (?,?,?,?,?,?,?,?,?)""",
-                (cat, fn, None, title, sub, w, h, likes, now),
+                   (category, filename, url, title, subtitle, width, height, likes,
+                    created_at, rgb, light, warm, hour, hour_src)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (cat, fn, None, title, sub, w, h, likes, now, rgb, lt, wm, hr, hsrc),
             )
         print(f"  已生成 {len(SEED_PHOTOS)} 张示例照片。")

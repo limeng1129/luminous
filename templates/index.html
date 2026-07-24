@@ -31,6 +31,16 @@
 </header>
 {% endif %}
 
+{% if hours_known %}
+<div class="nowbar" id="nowbar">
+  <p id="nowbarText"></p>
+  <div class="nowbar-shots" id="nowbarShots"></div>
+  <a href="/hour"><span>看这一天的光</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  </a>
+</div>
+{% endif %}
+
 {% if rest %}
 <section class="section">
   <div class="section-head">
@@ -80,6 +90,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>window.PHOTOS = {{ photos_json|safe }};</script>
+<script>window.PHOTOS = {{ photos_json|safe }}; window.HOURS = {{ hours_json|safe }};</script>
+<script src="{{ url_for('static', filename='js/nowbar.js') }}"></script>
 <script src="{{ url_for('static', filename='js/viewer.js') }}"></script>
 {% endblock %}

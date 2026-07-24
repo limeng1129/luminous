@@ -30,6 +30,8 @@
     v.classList.remove('open'); document.body.style.overflow = ''; reset();
   }
 
+  window.openViewer = open;
+
   document.querySelectorAll('.shot').forEach(function (el) {
     el.addEventListener('click', function () { open(+el.dataset.i); });
   });

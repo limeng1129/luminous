@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="减脂追踪">
+<meta name="theme-color" content="#1F6F5C">
+<link rel="apple-touch-icon" href="fit-icon-180.png">
+<link rel="manifest" href="fit.webmanifest">
+<title>减脂追踪</title>
+<style>
+:root{
+  --paper:#F0F1EC;--ink:#14181C;--ink-2:#5C6560;--rule:#D6D9D0;--card:#FFF;
+  --signal:#1F6F5C;--soft:#DCE8E3;--alert:#9C4420;--gold:#B8860B;
+  --shadow:0 1px 2px rgba(20,24,28,.06),0 10px 26px -18px rgba(20,24,28,.35);
+  --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+  --num:ui-monospace,"SF Mono",Menlo,monospace;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root{--paper:#101413;--ink:#E7EAE5;--ink-2:#98A199;--rule:#2A312E;--card:#171C1A;
+        --signal:#5FCBAA;--soft:#1B302B;--alert:#E08A62;--gold:#D9B24C;
+        --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 26px -18px rgba(0,0,0,.9);}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.6;padding-bottom:calc(4.6rem + var(--safe-b));
+  overscroll-behavior-y:contain}
+.wrap{max-width:34rem;margin:0 auto;padding:0 1rem}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:20;background:var(--paper);
+  padding:calc(env(safe-area-inset-top,0px) + .8rem) 0 .6rem;border-bottom:1px solid var(--rule)}
+.top-in{max-width:34rem;margin:0 auto;padding:0 1rem;display:flex;align-items:center;gap:.5rem}
+.datenav{flex:1;text-align:center}
+.dl{font:700 1.05rem/1.2 var(--sans)}
+.ds{font:600 .68rem/1.5 var(--num);letter-spacing:.1em;color:var(--ink-2);text-transform:uppercase}
+.arrow{border:1px solid var(--rule);background:var(--card);color:var(--ink);
+  width:2.1rem;height:2.1rem;border-radius:50%;font-size:1rem;cursor:pointer;flex:none}
+.arrow:disabled{opacity:.3}
+
+/* cards */
+.card{background:var(--card);border:1px solid var(--rule);border-radius:.7rem;
+  padding:1rem;margin:.85rem 0;box-shadow:var(--shadow)}
+.lbl{font:600 .66rem/1 var(--num);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-2);margin-bottom:.55rem}
+
+/* today plan */
+.plan{display:flex;align-items:center;justify-content:space-between;gap:.75rem;cursor:pointer}
+.plan-t{font-size:1.15rem;font-weight:700}
+.plan-s{font-size:.78rem;color:var(--ink-2)}
+.badge{background:var(--soft);color:var(--signal);border-radius:.35rem;
+  padding:.2rem .5rem;font:700 .7rem/1.5 var(--num);flex:none}
+.moves{display:none;margin-top:.9rem;border-top:1px solid var(--rule);padding-top:.7rem}
+.moves.on{display:block}
+.mv{display:flex;justify-content:space-between;gap:.8rem;padding:.42rem 0;
+  border-bottom:1px solid var(--rule);font-size:.88rem}
+.mv:last-child{border-bottom:0}
+.mv i{font-style:normal;color:var(--ink-2);font-family:var(--num);font-size:.8rem;flex:none}
+
+/* weight hero */
+.hero{display:flex;align-items:flex-end;gap:.5rem}
+.hero input{font:800 3rem/1 var(--num);width:100%;border:0;background:transparent;
+  color:var(--ink);padding:0;letter-spacing:-.02em}
+.hero input::placeholder{color:var(--rule)}
+.hero span{font:700 1rem/2.4 var(--num);color:var(--ink-2)}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-top:.9rem;
+  border-top:1px solid var(--rule);padding-top:.75rem}
+.st{text-align:center}
+.st b{display:block;font:700 1.02rem/1.3 var(--num)}
+.st u{display:block;font:600 .6rem/1.4 var(--num);letter-spacing:.08em;
+  color:var(--ink-2);text-decoration:none;text-transform:uppercase}
+.ahead{color:var(--signal)}.behind{color:var(--alert)}
+
+/* toggles + fields */
+.togs{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.tog{border:1px solid var(--rule);background:var(--card);color:var(--ink-2);
+  border-radius:.5rem;padding:.75rem .5rem;font:600 .88rem/1.2 var(--sans);cursor:pointer;text-align:center}
+.tog.on{background:var(--soft);border-color:var(--signal);color:var(--signal)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:.7rem;
+  padding:.55rem 0;border-bottom:1px solid var(--rule)}
+.row:last-child{border-bottom:0}
+.row label{font-size:.92rem;color:var(--ink-2)}
+.row input,.row select{font:700 1rem/1 var(--num);text-align:right;border:0;background:transparent;
+  color:var(--ink);width:8rem;padding:.3rem 0}
+textarea{width:100%;border:1px solid var(--rule);border-radius:.45rem;background:transparent;
+  color:var(--ink);font:400 .9rem/1.6 var(--sans);padding:.6rem;resize:vertical;min-height:3.4rem}
+input,textarea,select,button{font-family:inherit}
+input:focus,textarea:focus{outline:none}
+input:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+
+/* streak / warn */
+.strip{display:flex;gap:.35rem;margin-top:.7rem}
+.dot{flex:1;height:.42rem;border-radius:.21rem;background:var(--rule)}
+.dot.on{background:var(--signal)}
+.warn{background:var(--alert);color:#fff;border-radius:.5rem;padding:.7rem .85rem;
+  font-size:.85rem;margin:.85rem 0}
+
+/* chart */
+svg.ch{width:100%;height:190px;display:block}
+.legend{display:flex;gap:1rem;font:600 .66rem/1 var(--num);color:var(--ink-2);margin-top:.5rem}
+.legend i{display:inline-block;width:.85rem;height:2px;vertical-align:middle;margin-right:.3rem}
+
+/* weeks table */
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+th{font:600 .62rem/1 var(--num);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);
+  text-align:right;padding:.45rem .3rem;border-bottom:1px solid var(--rule)}
+th:first-child{text-align:left}
+td{padding:.5rem .3rem;border-bottom:1px solid var(--rule);text-align:right;font-family:var(--num)}
+td:first-child{text-align:left;font-weight:700}
+tr:last-child td{border-bottom:0}
+.wi{width:4.2rem;text-align:right;border:1px solid var(--rule);border-radius:.3rem;
+  background:transparent;color:var(--ink);font:700 .84rem/1 var(--num);padding:.3rem}
+
+/* buttons */
+.btn{display:block;width:100%;border:1px solid var(--signal);background:var(--signal);color:#fff;
+  border-radius:.55rem;padding:.85rem;font:700 .95rem/1 var(--sans);cursor:pointer;margin-top:.6rem}
+.btn.ghost{background:transparent;color:var(--signal)}
+.btn.mut{background:transparent;color:var(--ink-2);border-color:var(--rule)}
+pre.out{white-space:pre-wrap;word-break:break-word;background:var(--paper);border:1px solid var(--rule);
+  border-radius:.45rem;padding:.75rem;font:400 .82rem/1.65 var(--num);margin:0}
+
+/* tabs */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);
+  border-top:1px solid var(--rule);display:flex;padding-bottom:var(--safe-b)}
+.tabs button{flex:1;border:0;background:transparent;color:var(--ink-2);
+  padding:.8rem .2rem .85rem;font:600 .78rem/1.3 var(--sans);cursor:pointer}
+.tabs button.on{color:var(--signal)}
+.tabs em{display:block;font-size:1.1rem;font-style:normal;margin-bottom:.1rem}
+.view{display:none}.view.on{display:block}
+.note{font-size:.78rem;color:var(--ink-2);line-height:1.7;margin:.6rem 0 0}
+h2.h{font-size:1.05rem;margin:1.4rem 0 .2rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="top"><div class="top-in">
+  <button class="arrow" id="prev" aria-label="前一天">‹</button>
+  <div class="datenav"><div class="dl" id="dlab">—</div><div class="ds" id="dsub">—</div></div>
+  <button class="arrow" id="next" aria-label="后一天">›</button>
+</div></div>
+
+<div class="wrap">
+
+<!-- ============ 今天 ============ -->
+<section class="view on" id="v-today">
+  <div id="warnbox"></div>
+
+  <div class="card">
+    <div class="lbl">今日计划</div>
+    <div class="plan" id="planbox">
+      <div><div class="plan-t" id="ptitle">—</div><div class="plan-s" id="psub">—</div></div>
+      <div class="badge" id="pbadge">—</div>
+    </div>
+    <div class="moves" id="moves"></div>
+  </div>
+
+  <div class="card">
+    <div class="lbl">晨起体重</div>
+    <div class="hero"><input id="w" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span>kg</span></div>
+    <div class="stats">
+      <div class="st"><b id="s7">—</b><u>7日均重</u></div>
+      <div class="st"><b id="sdiff">—</b><u>与目标线</u></div>
+      <div class="st"><b id="stot">—</b><u>累计</u></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="lbl">今日底线</div>
+    <div class="togs">
+      <button class="tog" id="t-done">✓ 训练完成</button>
+      <button class="tog" id="t-walk">8000 步</button>
+      <button class="tog" id="t-water">3L 水</button>
+      <button class="tog" id="t-prot">蛋白达标</button>
+    </div>
+    <div class="strip" id="strip"></div>
+    <p class="note" id="streaktxt"></p>
+  </div>
+
+  <div class="card">
+    <div class="lbl">可选记录</div>
+    <div class="row"><label>步数</label><input id="steps" type="number" inputmode="numeric" placeholder="—"></div>
+    <div class="row"><label>热量 kcal</label><input id="kcal" type="number" inputmode="numeric" placeholder="—"></div>
+    <div class="row"><label>睡眠 h</label><input id="sleep" type="number" inputmode="decimal" step="0.5" placeholder="—"></div>
+    <textarea id="note" placeholder="备注：状态、饥饿感、哪个动作加了重量…" style="margin-top:.7rem"></textarea>
+  </div>
+</section>
+
+<!-- ============ 趋势 ============ -->
+<section class="view" id="v-trend">
+  <div class="card">
+    <div class="lbl">体重趋势</div>
+    <svg class="ch" id="chart" viewBox="0 0 340 190" preserveAspectRatio="none" aria-label="体重趋势图"></svg>
+    <div class="legend">
+      <span><i style="background:var(--signal)"></i>7日均重</span>
+      <span><i style="background:var(--rule)"></i>每日</span>
+      <span><i style="background:var(--gold);height:0;border-top:2px dashed var(--gold)"></i>目标线</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="lbl">每周汇总 · 腰围可直接填</div>
+    <div style="overflow-x:auto"><table id="wtab"></table></div>
+    <p class="note">腰围每周量一次，肚脐水平、放松呼气末、不收腹。前期腰围掉得比体重明显——它才是主要动力来源。每 2 周拍一次正侧背照片。</p>
+  </div>
+</section>
+
+<!-- ============ 汇报 ============ -->
+<section class="view" id="v-report">
+  <div class="card">
+    <div class="lbl">本周汇报 · 复制后发给我</div>
+    <pre class="out" id="rep">—</pre>
+    <button class="btn" id="copyrep">复制汇报</button>
+    <p class="note">每周日生成一次发过来，我按执行率判断是真平台期还是热量悄悄涨了，并告诉你下周改什么。</p>
+  </div>
+  <div class="card">
+    <div class="lbl">基线设置</div>
+    <div class="row"><label>开始日期</label><input id="b-start" type="date"></div>
+    <div class="row"><label>起始体重 kg</label><input id="b-w0" type="number" step="0.1" inputmode="decimal"></div>
+    <div class="row"><label>身高 cm</label><input id="b-h" type="number" step="0.5" inputmode="decimal"></div>
+    <div class="row"><label>每周目标 kg</label><input id="b-rate" type="number" step="0.05" inputmode="decimal"></div>
+    <p class="note" id="bmitxt"></p>
+  </div>
+  <div class="card">
+    <div class="lbl">备份 · 数据只存在这台手机上</div>
+    <button class="btn ghost" id="exp">导出全部数据</button>
+    <button class="btn mut" id="impbtn">导入数据</button>
+    <textarea id="io" placeholder="导出的数据会出现在这里；导入时把备份粘贴进来再点导入。" style="margin-top:.6rem"></textarea>
+    <p class="note">建议每两周导出一次，粘到备忘录或发给自己。清除 Safari 数据会连这里的记录一起清掉。</p>
+  </div>
+</section>
+
+</div>
+
+<nav class="tabs">
+  <button class="on" data-v="today"><em>◎</em>今天</button>
+  <button data-v="trend"><em>◹</em>趋势</button>
+  <button data-v="report"><em>≡</em>汇报</button>
+</nav>
+
+<script>
+(function(){
+'use strict';
+var KEY='fatloss.v1';
+var PLAN=[
+ {k:'rest',t:'完全休息',s:'走够 8000 步就算达标'},
+ {k:'A',t:'A · 上肢（推）',s:'45 分钟'},
+ {k:'B',t:'B · 下肢 + 核心',s:'45 分钟'},
+ {k:'cardio',t:'低强度有氧',s:'快走 / 骑行 30-40 分钟，心率 120-140'},
+ {k:'C',t:'C · 上肢（拉）',s:'45 分钟'},
+ {k:'D',t:'D · 下肢 + 全身循环',s:'45 分钟，最难受的一天'},
+ {k:'cardio2',t:'有氧 + 拉伸',s:'40-60 分钟，或户外活动'}
+];
+var MOVES={
+ A:[['哑铃地板卧推','4×10-12'],['哑铃肩上推举','3×10-12'],['俯卧撑（可跪姿）','3×近力竭'],['哑铃侧平举','3×12-15'],['臂力棒胸前下压','3×10-15'],['过头三头臂屈伸','3×12']],
+ B:[['哑铃高脚杯深蹲','4×12-15'],['罗马尼亚硬拉','4×10-12'],['保加利亚分腿蹲','3×10/腿'],['臀桥 / 单腿臀桥','3×15'],['死虫式','3×12/侧'],['平板支撑','3×到抖']],
+ C:[['哑铃单臂划船','4×10-12/臂'],['哑铃俯身划船','3×10-12'],['哑铃反向飞鸟','3×12-15'],['哑铃弯举','3×10-12'],['锤式弯举','3×12'],['农夫行走','3×40秒']],
+ D:[['哑铃行走箭步蹲','3×12/腿'],['哑铃相扑硬拉','3×12'],['哑铃提踵','3×20'],['循环 ×4 轮','40秒练/20秒休'],['推举→高抬腿→摇摆','轮间休 90 秒'],['登山者→深蹲跳','膝不适换徒手深蹲']]
+};
+var TOGS=[['t-done','done'],['t-walk','walk'],['t-water','water'],['t-prot','prot']];
+var D=null,cur=null;
+
+/* ---------- storage ---------- */
+function load(){
+  var d={base:{start:'2026-08-04',w0:88,h:178.5,rate:0.7},days:{},weeks:{}};
+  try{var r=localStorage.getItem(KEY); if(r){var p=JSON.parse(r);
+    d.base=Object.assign(d.base,p.base||{}); d.days=p.days||{}; d.weeks=p.weeks||{};}}catch(e){}
+  return d;
+}
+function save(){ try{localStorage.setItem(KEY,JSON.stringify(D));}catch(e){} }
+
+/* ---------- dates ---------- */
+function iso(dt){var m=dt.getMonth()+1,d=dt.getDate();
+  return dt.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(d<10?'0':'')+d;}
+function parse(s){var a=s.split('-');return new Date(+a[0],+a[1]-1,+a[2]);}
+function shift(s,n){var d=parse(s);d.setDate(d.getDate()+n);return iso(d);}
+function dayDiff(a,b){return Math.round((parse(b)-parse(a))/864e5);}
+function weekOf(s){return Math.floor(dayDiff(D.base.start,s)/7);}
+function day(s){ if(!D.days[s]) D.days[s]={}; return D.days[s]; }
+
+/* ---------- math ---------- */
+function avg7(s){var t=0,n=0;
+  for(var i=0;i<7;i++){var w=(D.days[shift(s,-i)]||{}).w; if(w>0){t+=w;n++;}}
+  return n?t/n:null;}
+function targetAt(s){var d=dayDiff(D.base.start,s); if(d<0)d=0;
+  return D.base.w0-D.base.rate*(d/7);}
+function fmt(x,n){return x==null?'—':x.toFixed(n==null?1:n);}
+
+/* ---------- today view ---------- */
+function renderToday(){
+  var dt=parse(cur),wd=dt.getDay(),p=PLAN[wd],wk=weekOf(cur);
+  document.getElementById('dlab').textContent=(dt.getMonth()+1)+' 月 '+dt.getDate()+' 日 周'+'日一二三四五六'[wd];
+  document.getElementById('dsub').textContent='W'+wk+' · DAY '+(dayDiff(D.base.start,cur)+1);
+  document.getElementById('ptitle').textContent=p.t;
+  document.getElementById('psub').textContent=p.s;
+  document.getElementById('pbadge').textContent=MOVES[p.k]?'展开':(p.k==='rest'?'休息':'有氧');
+  var mv=document.getElementById('moves');
+  if(MOVES[p.k]){ mv.innerHTML=MOVES[p.k].map(function(m){
+      return '<div class="mv"><span>'+m[0]+'</span><i>'+m[1]+'</i></div>';}).join(''); }
+  else { mv.innerHTML='<div class="mv"><span>'+(p.k==='rest'
+      ?'今天什么都不用做。恢复是计划的一部分。':'心率 120-140，能说话但不能唱歌的强度。')+'</span></div>'; }
+  mv.classList.remove('on');
+
+  var d=D.days[cur]||{};
+  document.getElementById('w').value=d.w||'';
+  document.getElementById('steps').value=d.steps||'';
+  document.getElementById('kcal').value=d.kcal||'';
+  document.getElementById('sleep').value=d.sleep||'';
+  document.getElementById('note').value=d.note||'';
+  TOGS.forEach(function(t){
+    document.getElementById(t[0]).classList.toggle('on',!!d[t[1]]);});
+
+  var a=avg7(cur),tg=targetAt(cur);
+  document.getElementById('s7').textContent=fmt(a);
+  var df=document.getElementById('sdiff');
+  if(a==null){df.textContent='—';df.className='';}
+  else{var g=a-tg; df.textContent=(g>0?'+':'')+g.toFixed(1); df.className=g<=0?'ahead':'behind';}
+  document.getElementById('stot').textContent=a==null?'—':(a-D.base.w0).toFixed(1);
+
+  // streak strip: last 14 days, 记录了体重就算
+  var strip='',run=0,miss=0,warn='';
+  for(var i=13;i>=0;i--){var k=shift(cur,-i),ok=((D.days[k]||{}).w>0);
+    strip+='<div class="dot'+(ok?' on':'')+'"></div>';}
+  document.getElementById('strip').innerHTML=strip;
+  for(var j=0;j<400;j++){var k2=shift(cur,-j);
+    if((D.days[k2]||{}).w>0) run++; else break;}
+  var trainWk=0;
+  for(var i2=0;i2<7;i2++){var k3=shift(cur,-i2);
+    if(weekOf(k3)===wk&&(D.days[k3]||{}).done) trainWk++;}
+  document.getElementById('streaktxt').textContent=
+    '连续记录 '+run+' 天 · 本周训练 '+trainWk+'/4 次'+(trainWk>=3?'（已达标）':'');
+  var m1=!((D.days[shift(cur,-1)]||{}).done),m2=!((D.days[shift(cur,-2)]||{}).done);
+  var r1=PLAN[parse(shift(cur,-1)).getDay()].k,r2=PLAN[parse(shift(cur,-2)).getDay()].k;
+  if(m1&&m2&&r1!=='rest'&&r2!=='rest')
+    warn='<div class="warn">已经连续两天没练了。这是计划里唯一的红线——今天只需要换上衣服做 <b>1 组</b>，做完可以合法地停。</div>';
+  document.getElementById('warnbox').innerHTML=warn;
+  document.getElementById('next').disabled=(cur>=iso(new Date()));
+  document.getElementById('prev').disabled=(cur<=D.base.start);
+}
+
+/* ---------- trend ---------- */
+function weekRows(){
+  var rows=[],today=iso(new Date());
+  var last=Math.max(weekOf(today),0);
+  for(var w=0;w<=Math.min(last,24);w++){
+    var t=0,n=0,tr=0,st=0,sn=0;
+    for(var i=0;i<7;i++){var k=shift(D.base.start,w*7+i);
+      var d=D.days[k]; if(!d)continue;
+      if(d.w>0){t+=d.w;n++;} if(d.done)tr++; if(d.steps>0){st+=+d.steps;sn++;}
+    }
+    rows.push({w:w,avg:n?t/n:null,tr:tr,steps:sn?Math.round(st/sn):null,
+      tgt:D.base.w0-D.base.rate*w,waist:(D.weeks[w]||{}).waist||''});
+  }
+  return rows;
+}
+function renderTrend(){
+  var rows=weekRows(),h='<tr><th>周</th><th>周均</th><th>目标</th><th>训练</th><th>腰围</th></tr>';
+  rows.forEach(function(r){
+    h+='<tr><td>W'+r.w+'</td><td>'+fmt(r.avg)+'</td><td>'+r.tgt.toFixed(1)+'</td><td>'+r.tr+'</td>'+
+       '<td><input class="wi" type="number" inputmode="decimal" step="0.5" data-w="'+r.w+'" value="'+r.waist+'" placeholder="—"></td></tr>';
+  });
+  if(!rows.length) h+='<tr><td colspan="5" style="text-align:left;font-weight:400">第一周结束后这里会出现汇总。</td></tr>';
+  document.getElementById('wtab').innerHTML=h;
+  drawChart();
+}
+function drawChart(){
+  var svg=document.getElementById('chart'),W=340,H=190,P=26;
+  var start=D.base.start,today=iso(new Date());
+  var span=Math.max(dayDiff(start,today)+7,28);
+  var pts=[],avs=[];
+  for(var i=0;i<=span;i++){var k=shift(start,i),d=D.days[k];
+    if(d&&d.w>0){pts.push([i,d.w]); avs.push([i,avg7(k)]);}}
+  var lo=D.base.w0-D.base.rate*(span/7)-1, hi=D.base.w0+1.5;
+  pts.forEach(function(p){lo=Math.min(lo,p[1]-1);hi=Math.max(hi,p[1]+1);});
+  function X(i){return P+(W-P-8)*(i/span);}
+  function Y(v){return H-P-(H-P-14)*((v-lo)/(hi-lo));}
+  var s='';
+  // target line
+  s+='<path d="M'+X(0)+' '+Y(D.base.w0)+' L'+X(span)+' '+Y(D.base.w0-D.base.rate*(span/7))+
+     '" stroke="var(--gold)" stroke-width="1.5" stroke-dasharray="4 4" fill="none"/>';
+  // axes labels
+  s+='<text x="2" y="'+(Y(hi)+9)+'" font-size="9" fill="var(--ink-2)" font-family="monospace">'+hi.toFixed(0)+'</text>';
+  s+='<text x="2" y="'+Y(lo)+'" font-size="9" fill="var(--ink-2)" font-family="monospace">'+lo.toFixed(0)+'</text>';
+  s+='<line x1="'+P+'" y1="'+(H-P+4)+'" x2="'+(W-8)+'" y2="'+(H-P+4)+'" stroke="var(--rule)"/>';
+  for(var w=0;w<=Math.ceil(span/7);w+=2){
+    s+='<text x="'+X(w*7)+'" y="'+(H-P+16)+'" font-size="8" fill="var(--ink-2)" text-anchor="middle" font-family="monospace">W'+w+'</text>';}
+  // daily dots
+  pts.forEach(function(p){s+='<circle cx="'+X(p[0])+'" cy="'+Y(p[1])+'" r="2" fill="var(--rule)"/>';});
+  // avg line
+  if(avs.length>1){
+    var dd=avs.map(function(p,i){return (i?'L':'M')+X(p[0])+' '+Y(p[1]);}).join(' ');
+    s+='<path d="'+dd+'" stroke="var(--signal)" stroke-width="2.2" fill="none" stroke-linejoin="round" stroke-linecap="round"/>';
+    var last=avs[avs.length-1];
+    s+='<circle cx="'+X(last[0])+'" cy="'+Y(last[1])+'" r="4" fill="var(--signal)"/>';
+  }
+  if(!pts.length) s+='<text x="'+(W/2)+'" y="'+(H/2)+'" font-size="11" fill="var(--ink-2)" text-anchor="middle">记满两天后这里会出现曲线</text>';
+  svg.innerHTML=s;
+}
+
+/* ---------- report ---------- */
+function renderReport(){
+  var today=iso(new Date()),wk=Math.max(weekOf(today),0);
+  var rows=weekRows(),r=null,prev=null;
+  for(var i=0;i<rows.length;i++){ if(rows[i].w===wk)r=rows[i]; if(rows[i].w===wk-1)prev=rows[i]; }
+  var L=[];
+  L.push('减脂追踪 · 第 '+wk+' 周（'+shift(D.base.start,wk*7).slice(5)+' – '+shift(D.base.start,wk*7+6).slice(5)+'）');
+  if(r&&r.avg!=null){
+    L.push('周均体重 '+r.avg.toFixed(1)+'kg'+(prev&&prev.avg!=null?'（上周 '+prev.avg.toFixed(1)+'，'+(r.avg-prev.avg>=0?'+':'')+(r.avg-prev.avg).toFixed(1)+'）':''));
+    L.push('累计 '+(r.avg-D.base.w0).toFixed(1)+'kg｜目标线 '+r.tgt.toFixed(1)+'｜差 '+(r.avg-r.tgt>=0?'+':'')+(r.avg-r.tgt).toFixed(1));
+  } else L.push('本周还没记体重');
+  if(r){
+    L.push('训练 '+r.tr+'/4 次'+(r.steps?'｜均步数 '+r.steps:''));
+    if(r.waist) L.push('腰围 '+r.waist+'cm');
+  }
+  var notes=[];
+  for(var j=0;j<7;j++){var k=shift(D.base.start,wk*7+j),d=D.days[k];
+    if(d&&d.note) notes.push(k.slice(5)+' '+d.note);}
+  if(notes.length) L.push('备注：'+notes.join('；'));
+  document.getElementById('rep').textContent=L.join('\n');
+  var b=D.base,bmi=null,a=avg7(today);
+  if(a&&b.h) bmi=a/Math.pow(b.h/100,2);
+  document.getElementById('bmitxt').textContent=bmi?('当前 BMI '+bmi.toFixed(1)+' · 目标区间 22-23 对应 '+
+    (22*Math.pow(b.h/100,2)).toFixed(1)+'–'+(23*Math.pow(b.h/100,2)).toFixed(1)+'kg'):'记录体重后这里会显示 BMI。';
+  ['start','w0','h','rate'].forEach(function(k){document.getElementById('b-'+k).value=D.base[k];});
+}
+function renderAll(){renderToday();renderTrend();renderReport();}
+
+/* ---------- events ---------- */
+function bindNum(id,key){
+  document.getElementById(id).addEventListener('input',function(){
+    var v=this.value; day(cur)[key]=v===''?undefined:+v; save();
+    if(key==='w'){renderToday();renderTrend();renderReport();}
+  });
+}
+bindNum('w','w');bindNum('steps','steps');bindNum('kcal','kcal');bindNum('sleep','sleep');
+document.getElementById('note').addEventListener('input',function(){day(cur).note=this.value;save();});
+TOGS.forEach(function(t){
+  document.getElementById(t[0]).addEventListener('click',function(){
+    var d=day(cur); d[t[1]]=!d[t[1]]; save(); renderToday(); renderTrend(); renderReport();});
+});
+document.getElementById('wtab').addEventListener('change',function(e){
+  var el=e.target; if(!el.dataset||!el.dataset.w)return;
+  var w=el.dataset.w; D.weeks[w]=D.weeks[w]||{};
+  D.weeks[w].waist=el.value?+el.value:''; save(); renderReport();});
+document.getElementById('planbox').addEventListener('click',function(){
+  document.getElementById('moves').classList.toggle('on');});
+document.getElementById('prev').addEventListener('click',function(){cur=shift(cur,-1);renderToday();});
+document.getElementById('next').addEventListener('click',function(){
+  if(cur<iso(new Date())){cur=shift(cur,1);renderToday();}});
+document.querySelectorAll('.tabs button').forEach(function(b){
+  b.addEventListener('click',function(){
+    document.querySelectorAll('.tabs button').forEach(function(x){x.classList.remove('on');});
+    b.classList.add('on');
+    document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on');});
+    document.getElementById('v-'+b.dataset.v).classList.add('on');
+    if(b.dataset.v==='trend'){renderTrend();} if(b.dataset.v==='report'){renderReport();}
+    scrollTo(0,0);});
+});
+['start','w0','h','rate'].forEach(function(k){
+  document.getElementById('b-'+k).addEventListener('change',function(){
+    D.base[k]=k==='start'?this.value:+this.value; save(); renderAll();});
+});
+document.getElementById('copyrep').addEventListener('click',function(){
+  var t=document.getElementById('rep').textContent,b=this;
+  function ok(){b.textContent='已复制 ✓';setTimeout(function(){b.textContent='复制汇报';},1600);}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(ok,fallback);}else fallback();
+  function fallback(){var ta=document.getElementById('io');ta.value=t;ta.select();
+    try{document.execCommand('copy');ok();}catch(e){b.textContent='请手动复制下方文本';}}
+});
+document.getElementById('exp').addEventListener('click',function(){
+  document.getElementById('io').value=JSON.stringify(D);
+  document.getElementById('io').select();});
+document.getElementById('impbtn').addEventListener('click',function(){
+  var v=document.getElementById('io').value.trim(); if(!v)return;
+  try{var p=JSON.parse(v); if(!p.days)throw 0;
+    D=Object.assign({base:D.base,days:{},weeks:{}},p); save(); renderAll();
+    this.textContent='已导入 ✓';}catch(e){this.textContent='格式不对，没有导入';}
+  var b=this;setTimeout(function(){b.textContent='导入数据';},1800);});
+
+/* ---------- init ---------- */
+D=load();
+cur=iso(new Date());
+if(cur<D.base.start) cur=D.base.start;
+renderAll();
+})();
+</script>
+
+<script>
+if('serviceWorker' in navigator){
+  addEventListener('load',function(){
+    navigator.serviceWorker.register('fit-sw.js').catch(function(){});
+  });
+}
+</script>
+</body>
+</html>

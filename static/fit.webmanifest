@@ -1,0 +1,31 @@
+{
+  "name": "减脂追踪",
+  "short_name": "减脂",
+  "start_url": "./fit.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F0F1EC",
+  "theme_color": "#1F6F5C",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "fit-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "fit-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "fit-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

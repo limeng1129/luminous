@@ -680,7 +680,7 @@ function renderToday(){
       '<div class="mvd" data-d="'+idx+'">'+(m.f!=='—'?'<div class="mvf">'+m.f+'　·　'+m.kg+'</div>':'')+
       '<ul>'+m.q.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul>'+lg+'</div>';
   }
-  var h='<div class="phase"><b>'+p.t+'　·　'+p.s+'</b>'+ph.d+'</div>';
+  var h='<div class="phase"><b>'+p.t+'　·　'+p.s+'</b></div>';
   if(list){
     h+=block(WARM,'w');
     list.forEach(function(m,i){h+=block(m,i);});

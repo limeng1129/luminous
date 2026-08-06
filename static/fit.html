@@ -258,6 +258,20 @@ td:first-child{text-align:left;color:var(--ink-2)}
 .tabbar svg{width:22px;height:22px;display:block}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
+:root{--g1:#E0533D;--g2:#D08A18;--g3:#12A899}
+@media (prefers-color-scheme:dark){
+  :root{--g1:#FF7A63;--g2:#F5B23C;--g3:#2EDCC8}
+}
+.spark .spk,.ch .spk{stroke-dasharray:1;stroke-dashoffset:1;
+  animation:draw 1.15s cubic-bezier(.3,.7,.2,1) forwards}
+.halo{animation:halo 2.4s ease-in-out infinite}
+@keyframes halo{0%,100%{r:4;opacity:.30}50%{r:9;opacity:0}}
+.lg i{border-radius:1px}
+@media (prefers-reduced-motion:reduce){
+  .spark .spk,.ch .spk{stroke-dasharray:none;stroke-dashoffset:0;animation:none}
+  .halo{animation:none}
+}
+
 .warnline{font-size:13.5px;line-height:1.6;color:var(--warn);background:var(--fill);
   border-radius:10px;padding:12px 14px;margin:0 0 18px}
 </style>
@@ -282,7 +296,7 @@ td:first-child{text-align:left;color:var(--ink-2)}
   <div class="hero">
     <div class="px">
       <div class="hnum">
-        <input id="w" type="number" inputmode="decimal" step="0.1" placeholder="0.0">
+        <input id="w" type="text" inputmode="decimal" enterkeyhint="done" placeholder="0.0">
         <span class="u">kg</span>
       </div>
       <div class="hsub" id="hsub">—</div>
@@ -303,9 +317,9 @@ td:first-child{text-align:left;color:var(--ink-2)}
     <div class="sh"><span class="ico" style="--sc:var(--c-train)"><svg viewBox="0 0 16 16"><path d="M2 6.5v3M4.5 4.5v7M11.5 4.5v7M14 6.5v3M4.5 8h7"/></svg></span><h2 id="ptitle2">今日训练</h2><span class="n" id="n-train"></span></div>
     <div class="tbtns"><button data-t="60">休息 60″</button><button data-t="90">90″</button><button data-t="120">120″</button></div>
     <div id="moves"></div>
-    <div class="fld" style="margin-top:8px"><span>步数</span><input id="steps" type="number" inputmode="numeric" placeholder="—"></div>
-    <div class="fld"><span>热量 kcal</span><input id="kcal" type="number" inputmode="numeric" placeholder="—"></div>
-    <div class="fld"><span>睡眠 h</span><input id="sleep" type="number" inputmode="decimal" step="0.5" placeholder="—"></div>
+    <div class="fld" style="margin-top:8px"><span>步数</span><input id="steps" type="text" inputmode="numeric" placeholder="—"></div>
+    <div class="fld"><span>热量 kcal</span><input id="kcal" type="text" inputmode="numeric" placeholder="—"></div>
+    <div class="fld"><span>睡眠 h</span><input id="sleep" type="text" inputmode="decimal" placeholder="—"></div>
   </section>
 
   <section class="sec px">
@@ -358,11 +372,11 @@ td:first-child{text-align:left;color:var(--ink-2)}
   <section class="px" style="padding-top:6px">
     <div class="sh"><span class="ico" style="--sc:var(--ac)"><svg viewBox="0 0 16 16"><path d="M2.5 8h11M5.5 5v6M10.5 5v6"/></svg></span><h2>基线</h2></div>
     <div class="fld"><span>开始日期</span><input id="b-start" type="date"></div>
-    <div class="fld"><span>起始体重 kg</span><input id="b-w0" type="number" step="0.1" inputmode="decimal"></div>
-    <div class="fld"><span>身高 cm</span><input id="b-h" type="number" step="0.5" inputmode="decimal"></div>
-    <div class="fld"><span>每周目标 kg</span><input id="b-rate" type="number" step="0.05" inputmode="decimal"></div>
-    <div class="fld"><span>目标体重 kg</span><input id="b-goal" type="number" step="0.1" inputmode="decimal"></div>
-    <div class="fld"><span>周期 周</span><input id="b-weeks" type="number" step="1" inputmode="numeric"></div>
+    <div class="fld"><span>起始体重 kg</span><input id="b-w0" type="text" inputmode="decimal"></div>
+    <div class="fld"><span>身高 cm</span><input id="b-h" type="text" inputmode="decimal"></div>
+    <div class="fld"><span>每周目标 kg</span><input id="b-rate" type="text" inputmode="decimal"></div>
+    <div class="fld"><span>目标体重 kg</span><input id="b-goal" type="text" inputmode="decimal"></div>
+    <div class="fld"><span>周期 周</span><input id="b-weeks" type="text" inputmode="numeric"></div>
     <p class="note" id="bmitxt"></p>
   </section>
 
@@ -531,6 +545,12 @@ function shift(s,n){var d=parse(s);d.setDate(d.getDate()+n);return iso(d);}
 function dayDiff(a,b){return Math.round((parse(b)-parse(a))/864e5);}
 function weekOf(s){return Math.floor(dayDiff(D.base.start,s)/7);}
 function wdName(n){return '周'+'日一二三四五六'[n];}
+function setField(id,v){
+  var el=document.getElementById(id); if(!el)return;
+  if(document.activeElement===el)return;   // 正在输入，别动它
+  el.value=(v||v===0)?v:'';
+}
+function num(v){var x=parseFloat(String(v).replace(/[^0-9.\-]/g,''));return isNaN(x)?undefined:x;}
 function esc(t){return String(t).replace(/&/g,'&amp;').replace(/"/g,'&quot;')
   .replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
@@ -583,30 +603,52 @@ function renderStreak(){
   if(nr)nr.textContent=(dt.getMonth()+1)+'/'+dt.getDate();
 }
 
-/* ---------- hero sparkline ---------- */
 function drawSpark(){
   var el=document.getElementById('spark'),W=340,H=104;
-  var today=iso(new Date()),span=Math.max(dayDiff(D.base.start,today),13);
-  var lo=1e9,hi=-1e9,avs=[],pts=[];
+  var today=iso(new Date());
+  var span=Math.max(dayDiff(D.base.start,today),13);
+  var avs=[],pts=[];
   for(var i=0;i<=span;i++){var k=shift(D.base.start,i),d=D.days[k];
     if(d&&d.w>0){pts.push([i,d.w]);avs.push([i,avg7(k)]);}}
-  var t0=D.base.w0,t1=D.base.w0-D.base.rate*(span/7);
-  lo=Math.min(t1,t0); hi=Math.max(t1,t0);
+  var t0=D.base.w0,t1=Math.max(D.base.goal||0,D.base.w0-D.base.rate*(span/7));
+  var lo=Math.min(t1,t0),hi=Math.max(t1,t0);
   pts.forEach(function(p){lo=Math.min(lo,p[1]);hi=Math.max(hi,p[1]);});
   var pad=(hi-lo)*.35+.6; lo-=pad; hi+=pad;
-  function X(i){return (W)*(i/span);}
+  function X(i){return W*(i/span);}
   function Y(v){return H-8-(H-30)*((v-lo)/(hi-lo));}
-  var s='<path d="M'+X(0)+' '+Y(t0)+' L'+X(span)+' '+Y(t1)+
-        '" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="3 4" fill="none"/>';
-  pts.forEach(function(p){s+='<circle cx="'+X(p[0])+'" cy="'+Y(p[1])+'" r="1.6" fill="var(--ink-3)"/>';});
+  var s='<defs>'+
+    '<linearGradient id="sg" gradientUnits="userSpaceOnUse" x1="0" y1="'+Y(hi)+'" x2="0" y2="'+Y(lo)+'">'+
+      '<stop offset="0" stop-color="var(--g1)"/><stop offset="0.45" stop-color="var(--g2)"/>'+
+      '<stop offset="1" stop-color="var(--g3)"/></linearGradient>'+
+    '<linearGradient id="sf" gradientUnits="userSpaceOnUse" x1="0" y1="'+Y(hi)+'" x2="0" y2="'+H+'">'+
+      '<stop offset="0" stop-color="var(--g2)" stop-opacity=".30"/>'+
+      '<stop offset="1" stop-color="var(--g3)" stop-opacity="0"/></linearGradient>'+
+    '<filter id="sgl" x="-25%" y="-60%" width="150%" height="260%">'+
+      '<feDropShadow dx="0" dy="0" stdDeviation="3.2" flood-color="var(--g2)" flood-opacity=".55"/>'+
+    '</filter></defs>';
+  // 目标区
+  var gy=Y(D.base.goal||lo);
+  if(gy<H&&gy>0){
+    s+='<rect x="0" y="'+gy+'" width="'+W+'" height="'+(H-gy)+'" fill="var(--g3)" opacity=".07"/>';
+    s+='<line x1="0" y1="'+gy+'" x2="'+W+'" y2="'+gy+'" stroke="var(--g3)" stroke-width="1" '+
+       'stroke-dasharray="2 3" opacity=".5"/>';
+  }
+  // 目标线
+  s+='<path d="M'+X(0)+' '+Y(t0)+' L'+X(span)+' '+Y(t1)+'" stroke="var(--ink-3)" '+
+     'stroke-width="1.2" stroke-dasharray="3 4" fill="none" vector-effect="non-scaling-stroke"/>';
+  pts.forEach(function(p){
+    s+='<circle cx="'+X(p[0]).toFixed(1)+'" cy="'+Y(p[1]).toFixed(1)+'" r="1.7" fill="var(--ink-3)"/>';});
   if(avs.length>1){
     var dd=avs.map(function(p,i){return (i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1);}).join(' ');
-    s+='<path d="'+dd+' L'+X(avs[avs.length-1][0]).toFixed(1)+' '+H+' L'+X(avs[0][0]).toFixed(1)+' '+H+
-       ' Z" fill="var(--ac-soft)" stroke="none"/>';
-    s+='<path class="spk" d="'+dd+'" stroke="var(--ac)" stroke-width="2.5" fill="none" '+
-       'stroke-linecap="round" stroke-linejoin="round"/>';
-    var l=avs[avs.length-1];
-    s+='<circle cx="'+X(l[0]).toFixed(1)+'" cy="'+Y(l[1]).toFixed(1)+'" r="4" fill="var(--ac)"/>';
+    s+='<path d="'+dd+' L'+X(avs[avs.length-1][0]).toFixed(1)+' '+H+
+       ' L'+X(avs[0][0]).toFixed(1)+' '+H+' Z" fill="url(#sf)" stroke="none"/>';
+    s+='<path d="'+dd+'" stroke="url(#sg)" stroke-width="3" fill="none" filter="url(#sgl)" '+
+       'stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" opacity=".55"/>';
+    s+='<path class="spk" d="'+dd+'" stroke="url(#sg)" stroke-width="2.6" fill="none" '+
+       'stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" pathLength="1"/>';
+    var l=avs[avs.length-1],lx=X(l[0]).toFixed(1),ly=Y(l[1]).toFixed(1);
+    s+='<circle class="halo" cx="'+lx+'" cy="'+ly+'" r="4" fill="var(--g3)" opacity=".3"/>';
+    s+='<circle cx="'+lx+'" cy="'+ly+'" r="4" fill="var(--g3)" stroke="var(--bg)" stroke-width="1.6"/>';
   }
   el.innerHTML=s;
 }
@@ -651,10 +693,7 @@ function renderToday(){
   document.getElementById('moves').innerHTML=h;
 
   var d=D.days[cur]||{};
-  document.getElementById('w').value=d.w||'';
-  document.getElementById('steps').value=d.steps||'';
-  document.getElementById('kcal').value=d.kcal||'';
-  document.getElementById('sleep').value=d.sleep||'';
+  setField('w',d.w);setField('steps',d.steps);setField('kcal',d.kcal);setField('sleep',d.sleep);
   TOGS.forEach(function(t){document.getElementById(t[0]).classList.toggle('on',!!d[t[1]]);});
 
   var a=avg7(cur),tg=targetAt(cur);
@@ -714,7 +753,7 @@ function renderTrend(){
   var rows=weekRows(),h='<tr><th>周</th><th>周均</th><th>目标</th><th>训练</th><th>腰围</th></tr>';
   rows.forEach(function(r){
     h+='<tr><td>W'+(r.w+1)+'</td><td>'+fmt(r.avg)+'</td><td>'+r.tgt.toFixed(1)+'</td><td>'+r.tr+
-       '</td><td><input class="wi" type="number" inputmode="decimal" step="0.5" data-w="'+r.w+
+       '</td><td><input class="wi" type="text" inputmode="decimal" data-w="'+r.w+
        '" value="'+r.waist+'" placeholder="—"></td></tr>';});
   document.getElementById('wtab').innerHTML=h;
   var ntd=document.getElementById('n-trend');
@@ -727,27 +766,72 @@ function drawChart(){
   var span=Math.max(dayDiff(start,today)+7,28),pts=[],avs=[];
   for(var i=0;i<=span;i++){var k=shift(start,i),d=D.days[k];
     if(d&&d.w>0){pts.push([i,d.w]);avs.push([i,avg7(k)]);}}
-  var lo=D.base.w0-D.base.rate*(span/7)-1,hi=D.base.w0+1.5;
+  var goal=D.base.goal||0;
+  var lo=Math.min(goal,D.base.w0-D.base.rate*(span/7))-1,hi=D.base.w0+1.5;
   pts.forEach(function(p){lo=Math.min(lo,p[1]-1);hi=Math.max(hi,p[1]+1);});
-  function X(i){return P+(W-P-8)*(i/span);}
-  function Y(v){return H-P-(H-P-14)*((v-lo)/(hi-lo));}
-  var s='<path d="M'+X(0)+' '+Y(D.base.w0)+' L'+X(span)+' '+Y(Math.max(D.base.goal||0,D.base.w0-D.base.rate*(span/7)))+
-        '" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="4 4" fill="none"/>';
-  s+='<text x="2" y="'+(Y(hi)+9)+'" font-size="10" fill="var(--label2)">'+hi.toFixed(0)+'</text>';
-  s+='<text x="2" y="'+Y(lo)+'" font-size="10" fill="var(--label2)">'+lo.toFixed(0)+'</text>';
-  s+='<line x1="'+P+'" y1="'+(H-P+4)+'" x2="'+(W-8)+'" y2="'+(H-P+4)+'" stroke="var(--sep)"/>';
-  for(var w=0;w<=Math.ceil(span/7);w+=2){
-    s+='<text x="'+X(w*7)+'" y="'+(H-P+17)+'" font-size="9" fill="var(--label2)" text-anchor="middle">W'+w+'</text>';}
-  pts.forEach(function(p){s+='<circle cx="'+X(p[0])+'" cy="'+Y(p[1])+'" r="2" fill="var(--label3)"/>';});
-  if(avs.length>1){
-    s+='<path d="'+avs.map(function(p,i){return (i?'L':'M')+X(p[0])+' '+Y(p[1]);}).join(' ')+
-       '" stroke="var(--tint-bright)" stroke-width="2.5" fill="none" stroke-linejoin="round" stroke-linecap="round"/>';
-    var l=avs[avs.length-1];
-    s+='<circle cx="'+X(l[0])+'" cy="'+Y(l[1])+'" r="4.5" fill="var(--tint-bright)"/>';
+  function X(i){return P+(W-P-10)*(i/span);}
+  function Y(v){return H-P-(H-P-16)*((v-lo)/(hi-lo));}
+  var s='<defs>'+
+    '<linearGradient id="cg" gradientUnits="userSpaceOnUse" x1="0" y1="'+Y(hi)+'" x2="0" y2="'+Y(lo)+'">'+
+      '<stop offset="0" stop-color="var(--g1)"/><stop offset="0.45" stop-color="var(--g2)"/>'+
+      '<stop offset="1" stop-color="var(--g3)"/></linearGradient>'+
+    '<linearGradient id="cf" gradientUnits="userSpaceOnUse" x1="0" y1="'+Y(hi)+'" x2="0" y2="'+(H-P)+'">'+
+      '<stop offset="0" stop-color="var(--g2)" stop-opacity=".26"/>'+
+      '<stop offset="1" stop-color="var(--g3)" stop-opacity="0"/></linearGradient>'+
+    '<filter id="cgl" x="-25%" y="-60%" width="150%" height="260%">'+
+      '<feDropShadow dx="0" dy="0" stdDeviation="3.6" flood-color="var(--g2)" flood-opacity=".5"/>'+
+    '</filter></defs>';
+  // 目标区 + 目标线
+  var gy=Y(goal);
+  if(gy<H-P){
+    s+='<rect x="'+P+'" y="'+gy+'" width="'+(W-P-10)+'" height="'+(H-P-gy)+'" fill="var(--g3)" opacity=".08"/>';
+    s+='<line x1="'+P+'" y1="'+gy+'" x2="'+(W-10)+'" y2="'+gy+'" stroke="var(--g3)" stroke-width="1.2" '+
+       'stroke-dasharray="2 3" opacity=".65"/>';
+    s+='<text x="'+(W-10)+'" y="'+(gy-5)+'" font-size="9" fill="var(--g3)" text-anchor="end">目标 '+
+       goal.toFixed(1)+'</text>';
   }
-  if(!pts.length)s+='<text x="170" y="100" font-size="12" fill="var(--label2)" text-anchor="middle">记满两天后这里会出现曲线</text>';
+  // 里程碑线
+  [[3,'-3'],[6,'-6'],[10,'-10']].forEach(function(m){
+    var v=D.base.w0-m[0]; if(v<=lo||v>=hi)return;
+    s+='<line x1="'+P+'" y1="'+Y(v)+'" x2="'+(W-10)+'" y2="'+Y(v)+'" stroke="var(--c-mile)" '+
+       'stroke-width="1" stroke-dasharray="1 5" opacity=".55"/>';
+    s+='<text x="'+(P+2)+'" y="'+(Y(v)-4)+'" font-size="8" fill="var(--c-mile)" opacity=".9">'+m[1]+'kg</text>';
+  });
+  // 计划目标线
+  s+='<path d="M'+X(0)+' '+Y(D.base.w0)+' L'+X(span)+' '+
+      Y(Math.max(goal,D.base.w0-D.base.rate*(span/7)))+'" stroke="var(--ink-3)" stroke-width="1.4" '+
+      'stroke-dasharray="4 4" fill="none" vector-effect="non-scaling-stroke"/>';
+  // 坐标
+  s+='<text x="2" y="'+(Y(hi)+9)+'" font-size="9" fill="var(--ink-2)">'+hi.toFixed(0)+'</text>';
+  s+='<text x="2" y="'+Y(lo)+'" font-size="9" fill="var(--ink-2)">'+lo.toFixed(0)+'</text>';
+  s+='<line x1="'+P+'" y1="'+(H-P+4)+'" x2="'+(W-10)+'" y2="'+(H-P+4)+'" stroke="var(--hair)"/>';
+  for(var w=0;w<=Math.ceil(span/7);w+=2){
+    s+='<text x="'+X(w*7)+'" y="'+(H-P+17)+'" font-size="8.5" fill="var(--ink-3)" text-anchor="middle">W'+
+       (w+1)+'</text>';}
+  // 每日点：在目标线之上偏暖，之下偏冷
+  pts.forEach(function(p){
+    var tgt=Math.max(goal,D.base.w0-D.base.rate*(p[0]/7));
+    s+='<circle cx="'+X(p[0]).toFixed(1)+'" cy="'+Y(p[1]).toFixed(1)+'" r="2.1" fill="'+
+       (p[1]<=tgt?'var(--g3)':'var(--g1)')+'" opacity=".5"/>';});
+  if(avs.length>1){
+    var dd=avs.map(function(p,i){return (i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1);}).join(' ');
+    s+='<path d="'+dd+' L'+X(avs[avs.length-1][0]).toFixed(1)+' '+(H-P)+
+       ' L'+X(avs[0][0]).toFixed(1)+' '+(H-P)+' Z" fill="url(#cf)" stroke="none"/>';
+    s+='<path d="'+dd+'" stroke="url(#cg)" stroke-width="3.4" fill="none" filter="url(#cgl)" '+
+       'stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" opacity=".5"/>';
+    s+='<path class="spk" d="'+dd+'" stroke="url(#cg)" stroke-width="2.8" fill="none" '+
+       'stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" pathLength="1"/>';
+    var l=avs[avs.length-1],lx=X(l[0]).toFixed(1),ly=Y(l[1]).toFixed(1);
+    s+='<circle class="halo" cx="'+lx+'" cy="'+ly+'" r="5" fill="var(--g3)" opacity=".28"/>';
+    s+='<circle cx="'+lx+'" cy="'+ly+'" r="4.6" fill="var(--g3)" stroke="var(--bg)" stroke-width="1.8"/>';
+    s+='<text x="'+lx+'" y="'+(+ly-11)+'" font-size="10" font-weight="700" fill="var(--g3)" '+
+       'text-anchor="middle">'+l[1].toFixed(1)+'</text>';
+  }
+  if(!pts.length)s+='<text x="175" y="115" font-size="11" fill="var(--ink-3)" text-anchor="middle">'+
+    '记满两天后这里会出现曲线</text>';
   svg.innerHTML=s;
 }
+
 var MILES=[
  {g:'体重',u:'kg',v:[[1,'第一个 1kg。曲线开始往下了'],[3,'-3kg　·　奖励：新耳机'],
    [5,'-5kg　·　裤子明显松了'],[6,'-6kg　·　奖励：新衣服'],[8,'-8kg　·　别人开始问你是不是瘦了'],
@@ -843,7 +927,7 @@ function renderAll(){renderToday();renderTrend();renderMiles();renderHist();rend
 /* ---------- events ---------- */
 function bindNum(id,key){
   document.getElementById(id).addEventListener('input',function(){
-    var v=this.value; day(cur)[key]=v===''?undefined:+v; save();
+    var v=this.value.trim(); day(cur)[key]=v===''?undefined:num(v); save();
     if(key==='w'){renderToday();renderTrend();renderMiles();}
     renderReport();
   });
@@ -885,11 +969,11 @@ document.getElementById('hist').addEventListener('click',function(e){
 document.getElementById('wtab').addEventListener('change',function(e){
   var el=e.target; if(!el.dataset||!el.dataset.w)return;
   var w=el.dataset.w; D.weeks[w]=D.weeks[w]||{};
-  D.weeks[w].waist=el.value?+el.value:''; save(); renderMiles(); renderReport();});
+  D.weeks[w].waist=el.value?num(el.value):''; save(); renderMiles(); renderReport();});
 ['start','w0','h','rate','goal','weeks'].forEach(function(k){
   var _el=document.getElementById('b-'+k); if(!_el)return;
   _el.addEventListener('change',function(){
-    D.base[k]=k==='start'?this.value:+this.value; save(); renderAll();});});
+    D.base[k]=k==='start'?this.value:num(this.value); save(); renderAll();});});
 function go(v){
   document.querySelectorAll('.tabbar button').forEach(function(x){
     x.classList.toggle('on',x.dataset.v===v);});
